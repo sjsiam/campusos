@@ -62,3 +62,18 @@ No body contains SQL, stack traces or table names.
 ## Not covered yet (needs sign-in on production)
 Onboarding, Today/Assignments/Updates with real accounts, rep posting, push delivery from the GitHub cron,
 install on real phones. Script for those: `docs/qa/demo-script.md`.
+
+## CO-19 reminder windows (unit tests, 2026-11-26)
+
+`lib/schedule.test.ts` (Developer) already covered: class reminder 30 min before with the 15-min
+grace, a session just after midnight, cancelled sessions skipped, room change → new room, a change
+posted inside the window sends only the update alert, deadlines at 24 h and 1 h, push texts.
+
+Added `tests/schedule.reminders.test.ts` (14 tests, whole file runs with `TZ=UTC` like Vercel):
+- **UTC guard:** asserts the process offset is 0, so the WIB results below can't come from the machine zone.
+- **Saturday:** both 08:00 sessions (STIK1009 lecture + STIK1011 lab) fire at 07:30 WIB = 00:30 UTC; nothing at 07:29 or after the grace; a cancelled lecture is skipped while the lab still fires; Sat 23:50 → Sunday 00:15 session (week wraps 6 → 0); no reminders on a day without slots.
+- **Updates for their own date only:** next Saturday's cancellation doesn't affect this Saturday; this Saturday's room change puts the new room in the job.
+- **Deadline across midnight:** due Sun 00:30 → 1 h reminder Sat 23:30, 24 h reminder Sat 00:30 (Fri 17:30 UTC); orphan deadline (class deleted) sends nothing.
+- **No double send:** within a window (cron every 5 min, window 15 min) the job ids are identical on every run (class, due1/due24, update alert), so the route's `insert … on conflict do nothing` claim sends each once. The claim itself was exercised in-process earlier (C-06, `day5-report.md`).
+
+All pass; `npm test`: **110 passed, 1 skipped**. Nothing needs moving to `lib/`.

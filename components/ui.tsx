@@ -39,12 +39,15 @@ export const Spinner = () => (
   <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" />
 );
 
-export const FullScreenSpinner = () => (
-  <div className="flex min-h-dvh items-center justify-center text-primary" role="status">
-    <span className="size-8 animate-spin rounded-full border-4 border-current border-r-transparent motion-reduce:animate-none" />
-    <span className="sr-only">Loading</span>
-  </div>
-);
+export function FullScreenSpinner() {
+  const { t } = useT();
+  return (
+    <div className="flex min-h-dvh items-center justify-center text-primary" role="status">
+      <span className="size-8 animate-spin rounded-full border-4 border-current border-r-transparent motion-reduce:animate-none" />
+      <span className="sr-only">{t("common.loading")}</span>
+    </div>
+  );
+}
 
 /** Placeholder rows with hairlines, like the list they stand in for. */
 export const SkeletonRows = ({ n = 3, h = "h-16" }: { n?: number; h?: string }) => (

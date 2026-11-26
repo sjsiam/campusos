@@ -2,7 +2,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSession } from "@/components/Session";
+import KrsSheet from "@/components/KrsSheet";
 import { btnPrimary, btnSecondary, EmptyState, ErrorState, Icon, SkeletonRows, Spinner, stickyBar } from "@/components/ui";
+import type { KrsResult } from "@/lib/krs";
 import { listClasses, saveProfile } from "@/lib/data";
 import { enablePush, pushState } from "@/lib/push";
 import { useT, type MessageKey } from "@/lib/i18n";
@@ -106,6 +108,8 @@ function ClassesStep({ initial, editing, onSave }: { initial: string[]; editing:
   const [q, setQ] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [krsOpen, setKrsOpen] = useState(false);
+  const [krs, setKrs] = useState<KrsResult | null>(null);
 
   const load = () => { listClasses().then(setClasses, () => setLoadError(true)); };
   useEffect(load, []);
@@ -119,6 +123,8 @@ function ClassesStep({ initial, editing, onSave }: { initial: string[]; editing:
     return [...byCode.values()];
   }, [classes, q]);
 
+  // KRS ticks are added to what is already ticked; nothing is saved until the student taps the button.
+  const fromKrs = (r: KrsResult) => { setKrs(r); setQ(""); setPicked((s) => new Set([...s, ...r.ids])); };
   const toggle = (id: string) => setPicked((s) => { const n = new Set(s); if (!n.delete(id)) n.add(id); return n; });
   const save = async () => {
     setSaving(true); setSaveError(false);
@@ -135,6 +141,16 @@ function ClassesStep({ initial, editing, onSave }: { initial: string[]; editing:
       <div className="px-4 pt-4 pb-2">
         <h2 className={h2}>{t("onb.classesTitle")}</h2>
         <p className="mt-1.5 text-muted">{t("onb.classesBody")}</p>
+        {classes && classes.length > 0 && (
+          <button onClick={() => setKrsOpen(true)} className={`${btnSecondary} mt-3`}>{t("krs.button")}</button>
+        )}
+        {krs && (
+          <div role="status" className="mt-3 rounded-[10px] border border-line-strong p-3 text-[15px]">
+            {krs.ids.length > 0 && <p>{t(krs.ids.length === 1 ? "krs.found.one" : "krs.found", { n: krs.ids.length })}</p>}
+            {krs.unknown.length > 0 && <p className={krs.ids.length ? "mt-1 text-muted" : ""}>{t("krs.unknown", { codes: krs.unknown.join(", ") })}</p>}
+          </div>
+        )}
+        {krsOpen && classes && <KrsSheet classes={classes} onClose={() => setKrsOpen(false)} onRead={fromKrs} />}
         {classes && classes.length > 0 && (
           <label className="relative mt-3 block">
             <span className="sr-only">{t("onb.search")}</span>

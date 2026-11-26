@@ -178,5 +178,15 @@
   "common.offlineError": "Kamu sedang offline. Sambungkan ke internet lalu coba lagi.",
   "side.changes": "Perubahan minggu ini",
   "assign.pick": "Pilih tugas untuk melihatnya di sini.",
-  "land.changelog": "Catatan rilis"
+  "land.changelog": "Catatan rilis",
+  "common.loading": "Memuat",
+  "krs.button": "Isi dari KRS",
+  "krs.title": "Isi dari KRS",
+  "krs.body": "Salin KRS kamu dari SIAKAD lalu tempel di sini.",
+  "krs.private": "Dibaca di HP ini saja. Teksnya tidak dikirim atau disimpan.",
+  "krs.read": "Baca",
+  "krs.none": "Tidak ada kode mata kuliah. Salin seluruh halaman KRS lalu coba lagi.",
+  "krs.found": "{n} kelas kamu ditemukan. Periksa dulu, lalu lanjut.",
+  "krs.found.one": "{n} kelas kamu ditemukan. Periksa dulu, lalu lanjut.",
+  "krs.unknown": "Belum ada di CampusOS: {codes}"
 }
