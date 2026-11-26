@@ -184,7 +184,7 @@
   "krs.title": "Fill from KRS",
   "krs.body": "Copy your KRS from SIAKAD and paste it here.",
   "krs.private": "Read on this phone only. The text isn't sent or saved.",
-  "krs.read": "Read",
+  "krs.read": "Tick my classes",
   "krs.none": "No course codes found. Copy the whole KRS page and try again.",
   "krs.found": "Found {n} of your classes. Check them, then continue.",
   "krs.found.one": "Found {n} of your classes. Check it, then continue.",

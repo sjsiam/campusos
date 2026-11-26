@@ -23,7 +23,8 @@ export function parseKrs(text: string, classes: CampusClass[]): KrsResult {
     const mine = classes.filter((c) => c.courseCode.toUpperCase() === code);
     const sections = [...new Set(mine.map((c) => c.section.toUpperCase()))];
     // "Kelas : 23" wins; a repeated table header ("… Kelas SKS …") gives a non-section word, so prefer a known one.
-    const labelled = [...seg.matchAll(KELAS)].map((k) => k[1].toUpperCase());
+    // Every real section has a digit (23, CE03, D29); that drops header words like "SKS" (KRS-1).
+    const labelled = [...seg.matchAll(KELAS)].map((k) => k[1].toUpperCase()).filter((k) => /\d/.test(k));
     // Tabular paste without the word "Kelas": a cell equal to one of this course's sections.
     const cells = seg.split(/[\s|;,()]+/).map((s) => s.toUpperCase());
     const tab = sections.filter((s) => cells.includes(s));

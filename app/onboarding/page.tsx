@@ -145,9 +145,13 @@ function ClassesStep({ initial, editing, onSave }: { initial: string[]; editing:
           <button onClick={() => setKrsOpen(true)} className={`${btnSecondary} mt-3`}>{t("krs.button")}</button>
         )}
         {krs && (
-          <div role="status" className="mt-3 rounded-[10px] border border-line-strong p-3 text-[15px]">
-            {krs.ids.length > 0 && <p>{t(krs.ids.length === 1 ? "krs.found.one" : "krs.found", { n: krs.ids.length })}</p>}
-            {krs.unknown.length > 0 && <p className={krs.ids.length ? "mt-1 text-muted" : ""}>{t("krs.unknown", { codes: krs.unknown.join(", ") })}</p>}
+          // A message, not a field: tinted, no border (Designer).
+          <div role="status" className="mt-3 flex gap-2.5 rounded-[10px] bg-bg-2 p-3 text-[15px]">
+            {krs.ids.length > 0 && <Icon name="check" className="mt-0.5 size-[18px] shrink-0 text-primary" />}
+            <div>
+              {krs.ids.length > 0 && <p>{t(krs.ids.length === 1 ? "krs.found.one" : "krs.found", { n: krs.ids.length })}</p>}
+              {krs.unknown.length > 0 && <p className={krs.ids.length ? "mt-1 text-muted" : ""}>{t("krs.unknown", { codes: krs.unknown.join(", ") })}</p>}
+            </div>
           </div>
         )}
         {krsOpen && classes && <KrsSheet classes={classes} onClose={() => setKrsOpen(false)} onRead={fromKrs} />}
