@@ -11,7 +11,8 @@ if (emulated && process.env.VERCEL) throw new Error("NEXT_PUBLIC_USE_EMULATORS m
 if (emulated) process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 
 // Deployed: FIREBASE_SERVICE_ACCOUNT holds the service-account JSON (Vercel env var, never in files).
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+// Pasted .env imports may keep wrapping quotes or turn the key's "\n" escapes into real newlines; undo both.
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT?.trim().replace(/^'([\s\S]*)'$/, "$1").replace(/\n/g, "\\n");
 const app = getApps()[0] ?? initializeApp(
   serviceAccount && !emulated
     ? { credential: cert(JSON.parse(serviceAccount)) }
