@@ -7,7 +7,11 @@ export const app =
   initializeApp({
     // Fallbacks keep `next build` prerender and the emulators working without a real project.
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "demo-key",
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "demo-campusos.firebaseapp.com",
+    // Deployed: our own host, proxied to Firebase by next.config.ts rewrites, so redirect sign-in stays same-site.
+    authDomain:
+      typeof window !== "undefined" && process.env.NEXT_PUBLIC_USE_EMULATORS !== "true"
+        ? location.host
+        : process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "demo-campusos.firebaseapp.com",
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo-campusos",
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
