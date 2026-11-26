@@ -77,3 +77,7 @@ Added `tests/schedule.reminders.test.ts` (14 tests, whole file runs with `TZ=UTC
 - **No double send:** within a window (cron every 5 min, window 15 min) the job ids are identical on every run (class, due1/due24, update alert), so the route's `insert … on conflict do nothing` claim sends each once. The claim itself was exercised in-process earlier (C-06, `day5-report.md`).
 
 All pass; `npm test`: **110 passed, 1 skipped**. Nothing needs moving to `lib/`.
+
+## CO-26 real push (2026-11-26, Lead with Siam)
+- Direct FCM test to Siam's 2 saved tokens: 2 sent, 0 failed; notification shown on Siam's phone.
+- Real flow: Siam posted a class update (STIK1007 absent, 2026-11-27); notify run 45819655999 sent it (2 sent, 0 failed); alert shown on the phone. PASS.
