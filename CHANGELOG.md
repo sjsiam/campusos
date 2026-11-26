@@ -2,11 +2,12 @@
 
 All notable changes to CampusOS are recorded here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Ticket IDs refer to
-[docs/team/BOARD.md](docs/team/BOARD.md). Nothing has been released or deployed yet.
+[docs/team/BOARD.md](docs/team/BOARD.md). Deployed to https://campusos-sudo.vercel.app on 2026-11-26; no version released yet.
 
 ## [Unreleased]
 
 ### Added
+- Live deployment on Vercel with the production database on Neon and the 11 real CE classes (CO-30, CO-31).
 - Installable web app: manifest, app icons, and an offline message when there is no connection (CO-07, CO-27).
 - Data stored in Postgres (Neon) behind API routes that check the Firebase sign-in token: only a
   class's verified editors can post its assignments and updates (CO-42), with authorization tests (CO-43).
@@ -33,4 +34,5 @@ Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Ticket I
 - Reschedule notices are not supported; only absence and room change.
 - When two classes overlap, Today's "now" band shows only one of them.
 - The app does not work offline; it shows an offline message.
-- Not deployed yet; push notifications are untested on real devices.
+- Push notifications are untested on real devices, and scheduled reminders are paused until the
+  GitHub workflow secrets are set.

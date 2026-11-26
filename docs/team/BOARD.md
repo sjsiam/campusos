@@ -46,8 +46,8 @@ Rules of the board
 | CO-27 | PWA icons + service worker + offline message (offline shell cut) | Developer | Day 5 | CO-07, CO-26 | Done (icons + manifest + offline message; shell cut) |
 | CO-28 | Spec + build: iPhone add-to-home-screen hint | Designer → Developer | Day 5 | CO-27, Siam ✓ design ✅ | Done (real-iPhone look unverified) |
 | CO-29 | Complete Indonesian text | Developer | Day 5 | all UI tickets | Todo |
-| CO-30 | Neon production database: schema + migrations 002 and 003 applied, `DATABASE_URL` in Vercel (no Firestore rules deploy) | Developer | Day 5 | CO-42, CO-43, Neon project created ✅ (Siam 2026-11-26), Siam go-ahead | In progress (Neon project + schema 001–003 done by Siam; `DATABASE_URL` in Vercel and seeding real classes on Neon still to do) |
-| CO-31 | Deploy app to Vercel (incl. `CRON_SECRET`, admin creds) | Developer | Day 5 | CO-30, Siam go-ahead | Todo |
+| CO-30 | Neon production database: schema + migrations 002 and 003 applied, `DATABASE_URL` in Vercel (no Firestore rules deploy) | Developer | Day 5 | CO-42, CO-43, Neon project created ✅ (Siam 2026-11-26), Siam go-ahead | Done (schema 001–003 + 11 real classes via `npm run seed:classes --prod`; Vercel env set) |
+| CO-31 | Deploy app to Vercel (incl. `CRON_SECRET`, admin creds) | Developer | Day 5 | CO-30, Siam go-ahead | Done (live at https://campusos-sudo.vercel.app; API 401 unauthenticated, cron 200 with secret; firebase-admin pinned ^13.10.0, Node 24.x) |
 | CO-32 | Polish: empty / loading / error states already built only | Designer → Developer | – | – | Cut (Siam 2026-11-26; states stay as built) |
 | CO-33 | Demo accounts (team's own Google accounts) | Developer | Day 6 | CO-14, CO-31 | Todo |
 | CO-34 | Demo script + full regression on deployed app | QA | Day 6 | CO-31, CO-33 | Todo |
@@ -90,14 +90,15 @@ fixed together with CO-35 (Developer, 2026-11-26).
 
 ## Before the demo (Lead, 2026-11-26; from `docs/qa/day5-report.md`, `docs/qa/day6-report.md`)
 All build tickets are Done or cut; L-7 fixed (44×44, verified by the Lead); CO-13 Done (real
-timetable, confirmed by Siam 2026-11-26). What remains is Siam-gated:
-- Neon project ✅ (CampusOS, production branch, AWS Singapore; migrations 001–003 run by Siam) ·
-  Firebase project (CO-31) · `DATABASE_URL` in Vercel + seed real classes on Neon (CO-30) · repo URL for `NEXT_PUBLIC_REPO_URL` (CO-38 links) ·
-  deploy go-ahead (CO-30/31) · demo accounts (CO-33) · demo script + regression on the deployed
-  app (CO-34) · Indonesian proofread (CO-29).
-- **Security:** reset the Neon role password after deploy (it was shared in chat), then update
+timetable, confirmed by Siam 2026-11-26). CO-30 and CO-31 Done: live at https://campusos-sudo.vercel.app
+(repo github.com/sjsiam/campusos, private; all work committed on `main`). What remains is Siam-gated:
+1. GitHub secrets `APP_URL` and `CRON_SECRET` (the CO-25 cron workflow is paused until then).
+2. Add the Vercel domain to Firebase Auth authorized domains (Google sign-in on the live site).
+3. CO-33 demo accounts → CO-34 demo script + regression on the live site.
+4. Indonesian proofread (CO-29).
+- **Security (still to do):** reset the Neon role password (it was shared in chat), then update
   `DATABASE_URL` in Vercel.
-- Unverified until deploy: real FCM push (CO-20/25/26), the iPhone hint on a real iPhone (CO-28).
+- Still unverified on the live site: real FCM push (CO-20/25/26), the iPhone hint on a real iPhone (CO-28).
 
 ## Plan Days 5–6 (Planning, 2026-11-26; all cuts decided)
 Supersedes the earlier re-plans. Design gate met (board v3, 2026-11-26); CO-42/CO-43 Done.
