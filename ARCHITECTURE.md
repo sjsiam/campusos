@@ -103,7 +103,8 @@ lib/
 public/sw.js       service worker: shows FCM pushes, opens the app on tap
 db/migrations/     001_init.sql, 002_no_reschedule.sql (applied in name order by npm run db:migrate)
 messages/          en.json, id.json
-scripts/           migrate.ts, seed.ts (demo data), set-role.ts (custom claims),
+scripts/           migrate.ts, seed.ts (demo data, local DB only), timetable.ts (the real CE classes),
+                   seed-classes.ts (classes into Neon, --prod), set-role.ts (role claim + editors, local or --prod),
                    token.ts (emulator ID token for curl), admin.ts (emulator admin init)
 tests/             owned by QA
 .github/workflows/ notify.yml (cron for the notify route)
@@ -130,7 +131,8 @@ Slots and editors stay inside the class row (jsonb / text[]): they are always re
 and small, so separate tables would only add joins.
 
 Roles live in Firebase Auth **custom claims** (`student`, `classrep`, `labassistant`, `lecturer`,
-`admin`), set with `npm run set-role -- <uid> <role>`. Only `admin` grants extra rights in the API.
+`admin`), set with `npm run set-role -- [--prod] --email <email> --role <role> [--classes <id,…>]`, which also
+adds the user to those classes' `editors`. Only `admin` grants extra rights in the API.
 Edit rights for a class come from its `editors` list, so a class rep can only post for their own
 classes. Assignment documents are links (Drive, e-learning), not uploads.
 
@@ -253,9 +255,9 @@ Useful:
 npm test                                   # unit tests (+ QA's API tests)
 npm run -s token -- rep-demo               # print an emulator ID token for a uid
 curl -H "Authorization: Bearer $(npm run -s token -- rep-demo)" http://127.0.0.1:3000/api/me
-npm run set-role -- <uid> admin            # custom claim in the Auth emulator
+npm run set-role -- --email admin@demo.campusos --role admin   # emulator + local DB (add --prod for Neon)
 ```
-Demo users: `student-demo` (student@), `rep-demo` (rep@, editor of `sisdig-a`), `admin-demo`
+Demo users: `student-demo` (student@), `rep-demo` (rep@, editor of `stik1005-14-lecture` and `stik1009-14-lecture`), `admin-demo`
 (admin@, `role: admin`). To start over, stop `npm run db`, delete `.pglite/`, and repeat migrate + seed.
 
 ## 8. Deployment 📋

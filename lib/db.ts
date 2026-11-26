@@ -11,6 +11,8 @@ const url = process.env.DATABASE_URL ?? "";
 // shortcut: two processes (e.g. seed while the server runs) can still collide on PGlite; rerun if that happens.
 /** Local PGlite or a Postgres on this machine (the demo seed only runs against these). */
 export const isLocalDb = (u: string) => /@(127\.0\.0\.1|localhost)[:/]/.test(u);
+/** Neon (production). Scripts that write production data require this plus an explicit --prod flag. */
+export const isNeonDb = (u: string) => /^postgres(ql)?:\/\/[^/]*\.neon\.tech[:/]/.test(u);
 const local = isLocalDb(url);
 
 export const sql = (g.__campusSql ??= postgres(url, {

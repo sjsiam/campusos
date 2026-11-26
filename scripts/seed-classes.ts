@@ -3,11 +3,11 @@
 // rows (new rows start with none; CO-14 set-role assigns them). Safe to re-run.
 // Refuses unless DATABASE_URL is a Neon URL AND --prod is passed:
 //   npx tsx --env-file=.env.vercel scripts/seed-classes.ts --prod   (or: npm run seed:classes -- --prod)
-import { sql } from "../lib/db";
+import { isNeonDb, sql } from "../lib/db";
 import { timetableClasses } from "./timetable";
 
 const url = process.env.DATABASE_URL ?? "";
-if (!/^postgres(ql)?:\/\/[^/]*\.neon\.tech[:/]/.test(url) || !process.argv.includes("--prod")) {
+if (!isNeonDb(url) || !process.argv.includes("--prod")) {
   console.error("Refusing to run: needs a Neon (neon.tech) DATABASE_URL and the --prod flag.");
   process.exit(1);
 }
