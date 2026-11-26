@@ -81,3 +81,4 @@ All pass; `npm test`: **110 passed, 1 skipped**. Nothing needs moving to `lib/`.
 ## CO-26 real push (2026-11-26, Lead with Siam)
 - Direct FCM test to Siam's 2 saved tokens: 2 sent, 0 failed; notification shown on Siam's phone.
 - Real flow: Siam posted a class update (STIK1007 absent, 2026-11-27); notify run 45819655999 sent it (2 sent, 0 failed); alert shown on the phone. PASS.
+- Device: iPhone, installed Home Screen app (CO-28: redirect sign-in and push both PASS on a real device).
