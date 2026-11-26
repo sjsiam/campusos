@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { canEdit, useSession } from "@/components/Session";
+import ClassPicker, { soonestClass } from "@/components/ClassPicker";
 import { btnPrimary, EmptyState, ErrorState, Icon, Segmented, SkeletonRows, Spinner, stickyBar } from "@/components/ui";
 import { createAssignment, listClasses } from "@/lib/data";
 import { useT } from "@/lib/i18n";
@@ -45,7 +46,7 @@ function NewAssignment() {
     listClasses().then((all) => {
       const mine = all.filter((c) => profile?.classIds.includes(c.id) && canEdit(c, user.uid, role));
       setClasses(mine);
-      if (mine.length) setClassId(mine[0].id);
+      if (mine.length) setClassId(soonestClass(mine, new Date()));
     }, () => setLoadError(true));
   };
   useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps -- once per visit
@@ -102,10 +103,8 @@ function NewAssignment() {
           <form ref={form} onSubmit={submit} noValidate className="flex flex-1 flex-col">
             <div className="p-4">
               <div className={field}>
-                <span className={lab}>{t("editor.class")}</span>
-                {classes.length === 1 ? <p><span className="font-fig font-semibold">{classes[0].courseCode}</span> · {classes[0].courseName} · {t("sec", { s: classes[0].section })}</p>
-                  : <Segmented label={t("editor.class")} value={classId} onChange={(v) => { setClassId(v); if (pick === "next") setPick(""); }}
-                      options={classes.map((c) => [c.id, <><span className="font-fig">{c.courseCode}</span>&nbsp;· {c.section}</>])} />}
+                {classes.length === 1 ? <><span className={lab}>{t("editor.class")}</span><p><span className="font-fig font-semibold">{classes[0].courseCode}</span> · {classes[0].courseName} · {t("sec", { s: classes[0].section })}</p></>
+                  : <ClassPicker classes={classes} value={classId} onChange={(v) => { setClassId(v); if (pick === "next") setPick(""); }} label={t("editor.class")} labelClass={lab} />}
               </div>
               <div className={field}>
                 <label htmlFor="title" className={lab}>{t("editor.title")}</label>

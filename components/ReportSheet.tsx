@@ -8,14 +8,13 @@ import { shortDate, upcomingSessions, wib } from "@/lib/today";
 import type { CampusClass, UpdateKind } from "@/lib/types";
 import { abBtn } from "./AppBar";
 import { canEdit, useSession } from "./Session";
+import ClassPicker, { radio, radioRow, soonestClass } from "./ClassPicker";
 import { btnPrimary, Icon, Segmented, Sheet, Spinner } from "./ui";
 
 const lab = "mb-1.5 block text-[15px] font-semibold";
 const field = "min-h-12 w-full rounded-lg border-[1.5px] border-line-strong bg-bg px-3 py-2.5";
 const input = `${field} text-base`;
 const err = "mt-1.5 text-sm font-semibold text-danger";
-const radioRow = "flex min-h-[52px] items-center gap-3 border-b border-line";
-const radio = "size-5 shrink-0 appearance-none rounded-full border-2 border-line-strong checked:border-[6px] checked:border-primary";
 
 /** "Today" / "Tomorrow" / "Mon 30 Nov" for a campus date. */
 export function useDayWord() {
@@ -33,7 +32,7 @@ export default function ReportSheet({ classes, initialClassId, onClose, onPosted
   const { user } = useSession();
   const dayWord = useDayWord();
   const [now] = useState(() => new Date());
-  const [classId, setClassId] = useState(initialClassId && classes.some((c) => c.id === initialClassId) ? initialClassId : classes[0].id);
+  const [classId, setClassId] = useState(() => initialClassId && classes.some((c) => c.id === initialClassId) ? initialClassId : soonestClass(classes, now));
   const [kind, setKind] = useState<UpdateKind | "">("");
   const [session, setSession] = useState("0");
   const [other, setOther] = useState("");
@@ -72,8 +71,7 @@ export default function ReportSheet({ classes, initialClassId, onClose, onPosted
     <Sheet open onClose={onClose} title={t("report.title")}>
       <div ref={box} className="flex flex-col gap-[18px]">
         {classes.length > 1
-          ? <Segmented label={t("updates.class")} value={classId} onChange={(v) => { setClassId(v); setSession("0"); }}
-              options={classes.map((c) => [c.id, <><span className="font-fig">{c.courseCode}</span>&nbsp;· {c.section}</>])} />
+          ? <ClassPicker classes={classes} value={classId} onChange={(v) => { setClassId(v); setSession("0"); }} label={t("updates.class")} labelClass={lab} />
           : <p className="-mt-2 text-sm text-muted"><b className="text-ink">{cls.courseName}</b> · <span className="font-fig">{cls.courseCode}</span> · {t("sec", { s: cls.section })}</p>}
         <div id="r-kind">
           <span className={lab}>{t("report.kind")}</span>

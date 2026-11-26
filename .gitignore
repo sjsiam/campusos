@@ -46,3 +46,6 @@ next-env.d.ts
 
 # local Postgres (PGlite) data
 /.pglite/
+
+# Third-party app screenshots used for design research: kept local, not published
+/docs/design/research/0*
