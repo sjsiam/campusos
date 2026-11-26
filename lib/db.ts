@@ -9,7 +9,9 @@ const url = process.env.DATABASE_URL ?? "";
 // Local PGlite (`npm run db`) runs every connection on one backend, so parallel queries from one pool can
 // interleave and fail. One connection per process locally; Neon gets a real pool.
 // shortcut: two processes (e.g. seed while the server runs) can still collide on PGlite; rerun if that happens.
-const local = /@(127\.0\.0\.1|localhost)[:/]/.test(url);
+/** Local PGlite or a Postgres on this machine (the demo seed only runs against these). */
+export const isLocalDb = (u: string) => /@(127\.0\.0\.1|localhost)[:/]/.test(u);
+const local = isLocalDb(url);
 
 export const sql = (g.__campusSql ??= postgres(url, {
   max: local ? 1 : 5,

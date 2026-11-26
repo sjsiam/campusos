@@ -10,6 +10,7 @@
     "emulators": "firebase emulators:start --project demo-campusos",
     "test": "vitest run",
     "seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
+    "seed:classes": "tsx --env-file-if-exists=.env.vercel scripts/seed-classes.ts",
     "set-role": "tsx --env-file-if-exists=.env.local scripts/set-role.ts",
     "db": "pglite-server --db=.pglite --port=54329 --max-connections=10",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
