@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
+/* Tokens: docs/design/system.md v3 §1. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #FFFFFF;           /* page */
+  --bg-2: #F4F6F5;         /* free-time gap rows, unread rows */
+  --ink: #14201F;
+  --muted: #52605E;
+  --line: #E1E6E5;         /* hairlines between rows */
+  --line-strong: #6B7876;  /* input and segmented-control borders (≥3:1) */
+  --head: #0E5A5B;         /* app bar, desktop rail */
+  --on-head: #FFFFFF;
+  --on-head-muted: #C9DEDD;
+  --primary: #0E6D6E;      /* buttons, links, "Now"/"Next", active tab */
+  --on-primary: #FFFFFF;
+  --primary-soft: #E6F1F0; /* now band, current row */
+  --mark: #FFD54A;         /* highlighter: a changed value (new room) */
+  --on-mark: #14201F;
+  --danger: #B3261E;       /* cancelled, overdue, sign out */
+  --danger-soft: #FCEBEA;
 }
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0F1716; --bg-2: #141E1D; --ink: #E6EEEC; --muted: #9EAEAB;
+    --line: #24302E; --line-strong: #64736F;
+    --head: #0B2E2E; --on-head: #E6EEEC; --on-head-muted: #A8C3C1;
+    --primary: #6CC8C2; --on-primary: #062020; --primary-soft: #15302E;
+    --mark: #F2C94C; --on-mark: #14201F;
+    --danger: #FF8A80; --danger-soft: #3A1614;
   }
 }
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-bg: var(--bg); --color-bg-2: var(--bg-2); --color-ink: var(--ink); --color-muted: var(--muted);
+  --color-line: var(--line); --color-line-strong: var(--line-strong);
+  --color-head: var(--head); --color-on-head: var(--on-head); --color-on-head-muted: var(--on-head-muted);
+  --color-primary: var(--primary); --color-on-primary: var(--on-primary); --color-primary-soft: var(--primary-soft);
+  --color-mark: var(--mark); --color-on-mark: var(--on-mark);
+  --color-danger: var(--danger); --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-text);
+  --font-fig: var(--font-fig);
 }
+html { color-scheme: light dark; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans), system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+::selection { background: var(--mark); color: var(--on-mark); }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Highlighter for a changed value (new room). */
+.mk { background: var(--mark); color: var(--on-mark); padding: 0 .18em; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
+/* Bottom sheet (system.md §4, §6): slides up 200ms; off with reduced motion. */
+dialog.sheet { margin: auto 0 0; max-width: none; width: 100%; max-height: 90dvh; transition: translate 200ms ease-out, display 200ms allow-discrete, overlay 200ms allow-discrete; }
+/* ≥ 768 (system.md §5): same sheet, 480px wide and centred, still bottom-attached. */
+@media (min-width: 768px) { dialog.sheet { margin: auto auto 0; max-width: 480px; } }
+dialog.sheet[open] { translate: 0 0; }
+@starting-style { dialog.sheet[open] { translate: 0 100%; } }
+dialog.sheet::backdrop { background: rgb(0 0 0 / .45); }
+@media (prefers-reduced-motion: reduce) { dialog.sheet { transition: none; } }

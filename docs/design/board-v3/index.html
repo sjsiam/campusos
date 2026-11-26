@@ -1,0 +1,658 @@
+<title>CampusOS Board v3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: review board. Sticky toolbar; plates grouped by screen; phones 390px, tablet 768px and desktop 1280px frames
+   rendered at real size and scaled to fit with CSS zoom. App tokens = docs/design/system.md (v3) 1:1. */
+:root {
+  --bg:#FFFFFF; --bg-2:#F4F6F5; --ink:#14201F; --muted:#52605E; --line:#E1E6E5; --line-strong:#6B7876;
+  --head:#0E5A5B; --on-head:#FFFFFF; --on-head-muted:#C9DEDD; --primary:#0E6D6E; --on-primary:#FFFFFF; --primary-soft:#E6F1F0;
+  --mark:#FFD54A; --on-mark:#14201F; --danger:#B3261E; --danger-soft:#FCEBEA;
+  --board-bg:#E9ECEB; --board-fg:#14201F; --board-muted:#52605E; --board-card:#F7F8F8; --frame:#1D2928;
+  --text: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fig: "Barlow Semi Condensed", "Source Sans 3", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0F1716; --bg-2:#141E1D; --ink:#E6EEEC; --muted:#9EAEAB; --line:#24302E; --line-strong:#64736F;
+  --head:#0B2E2E; --on-head:#E6EEEC; --on-head-muted:#A8C3C1; --primary:#6CC8C2; --on-primary:#062020; --primary-soft:#15302E;
+  --mark:#F2C94C; --on-mark:#14201F; --danger:#FF8A80; --danger-soft:#3A1614;
+  --board-bg:#080D0D; --board-fg:#E6EEEC; --board-muted:#9EAEAB; --board-card:#111A19; --frame:#33413F; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg:#0F1716; --bg-2:#141E1D; --ink:#E6EEEC; --muted:#9EAEAB; --line:#24302E; --line-strong:#64736F;
+  --head:#0B2E2E; --on-head:#E6EEEC; --on-head-muted:#A8C3C1; --primary:#6CC8C2; --on-primary:#062020; --primary-soft:#15302E;
+  --mark:#F2C94C; --on-mark:#14201F; --danger:#FF8A80; --danger-soft:#3A1614;
+  --board-bg:#080D0D; --board-fg:#E6EEEC; --board-muted:#9EAEAB; --board-card:#111A19; --frame:#33413F; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--board-bg); color: var(--board-fg); font: 16px/1.45 var(--text); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 80px; }
+::selection { background: var(--mark); color: var(--on-mark); }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+
+/* board chrome */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--board-bg); border-bottom: 1px solid var(--line); padding-block: 12px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 51; background: var(--board-bg); }
+.top h1 { margin: 0; font-size: 21px; font-weight: 700; }
+.top p { margin: 0; color: var(--board-muted); font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--board-card); border: 1px solid var(--line); }
+.seg button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: none; color: var(--board-muted); cursor: pointer; font-size: 15px; }
+.seg button[aria-pressed="true"] { background: var(--board-fg); color: var(--board-bg); font-weight: 600; }
+.intro { max-width: 74ch; color: var(--board-muted); margin: 18px 0 0; }
+.intro b { color: var(--board-fg); font-weight: 600; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 15px; }
+.toc a { color: var(--board-fg); text-underline-offset: 3px; }
+section.grp { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); scroll-margin-top: 110px; }
+section.grp > h2 { margin: 0; font-size: 20px; font-weight: 700; }
+section.grp > p { margin: 4px 0 0; color: var(--board-muted); max-width: 74ch; font-size: 15px; }
+.plates { display: flex; flex-wrap: wrap; gap: 36px 32px; margin-top: 20px; align-items: flex-start; }
+.plate { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 100%; }
+.plate figcaption { font-size: 14px; color: var(--board-muted); max-width: 390px; }
+.plate figcaption b { display: block; color: var(--board-fg); font-size: 16px; font-weight: 600; }
+.tid { font-weight: 600; color: var(--primary); }
+.fitbox { width: 100%; max-width: 100%; overflow: hidden; }
+.dev { border: 8px solid var(--frame); background: var(--bg); color: var(--ink); overflow: hidden; position: relative; font-family: var(--text); }
+.dev.phone { width: 390px; border-radius: 44px; }
+.dev.tablet { width: 820px; border-radius: 28px; }
+.dev.desktop { width: 1296px; border-radius: 14px; }
+.wide-plate { width: 100%; }
+
+/* ===== app components (system.md v3) ===== */
+.scr { min-height: 800px; display: flex; flex-direction: column; position: relative; font-size: 16px; line-height: 1.4; }
+.tablet .scr { min-height: 1024px; }
+.desktop .scr { min-height: 780px; }
+.fig { font-family: var(--fig); font-variant-numeric: tabular-nums; }
+.appbar { background: var(--head); color: var(--on-head); padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+.appbar .r1 { display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.appbar .r2 { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.appbar h3 { margin: 0; flex: 1; min-width: 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.ab-icon { width: 44px; height: 44px; margin-left: -10px; border: 0; background: none; color: var(--on-head); display: grid; place-items: center; }
+.appbar .s { font-size: 14px; color: var(--on-head-muted); }
+.ab-btn { min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--on-head-muted); background: transparent; color: var(--on-head); font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ab-btn svg { width: 18px; height: 18px; }
+.ab-lang { min-height: 40px; min-width: 44px; padding: 0 6px; border: 0; background: none; color: var(--on-head); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+.ab-av { width: 40px; height: 40px; border-radius: 999px; border: 1.5px solid var(--on-head-muted); background: none; color: var(--on-head); font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+.ab-right { display: flex; gap: 6px; align-items: center; }
+/* the current class: full-width band */
+.now { background: var(--primary-soft); padding: 14px 16px 16px; border-bottom: 1px solid var(--line); }
+.now .k { font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.now .k b { color: var(--primary); font-weight: 600; }
+.now .room { margin-top: 2px; font-family: var(--fig); font-weight: 700; font-size: 44px; line-height: 1.05; letter-spacing: -0.01em; }
+.now .cls { font-weight: 600; font-size: 17px; }
+.now .meta { font-size: 14px; color: var(--muted); }
+.now .chg { margin-top: 8px; font-size: 14px; }
+.mk { background: var(--mark); color: var(--on-mark); padding: 0 .18em; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.old { text-decoration: line-through; color: var(--muted); }
+.sechead { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 16px 6px; }
+.sechead h4 { margin: 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+.sechead a { font-size: 15px; font-weight: 600; color: var(--primary); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+/* timetable rows */
+.tt { border-top: 1px solid var(--line); }
+.tr { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); align-items: start; }
+.tr .t { font-family: var(--fig); font-weight: 600; font-size: 18px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.tr .t small { display: block; font-size: 15px; font-weight: 500; color: var(--muted); }
+.tr .t .dur { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.tr .c { min-width: 0; }
+.tr .c b { display: block; font-weight: 600; font-size: 16px; line-height: 1.3; }
+.tr .c .m { font-size: 14px; color: var(--muted); }
+.tr .c .m .fig { font-size: 15px; }
+.tr .st { font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; padding-top: 1px; }
+.tr .st.next { color: var(--primary); }
+.tr .st.off { color: var(--danger); display: inline-flex; align-items: center; gap: 4px; }
+.tr .st svg { width: 14px; height: 14px; }
+.tr.past .t, .tr.past b, .tr.past .t small { color: var(--muted); font-weight: 500; }
+.tr.cur { background: var(--primary-soft); }
+.tr.off b { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.tr .why { font-size: 14px; font-weight: 600; color: var(--danger); }
+.tr .note { font-size: 14px; color: var(--muted); margin-top: 1px; }
+.gap { padding: 6px 16px 6px 80px; font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+/* deadline rows */
+.dr { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 0 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); align-items: start; color: inherit; text-decoration: none; }
+.dr .cd { font-family: var(--fig); font-weight: 700; font-size: 18px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.dr .cd small { display: block; font-size: 14px; font-weight: 500; color: var(--muted); }
+.dr .cd.late { color: var(--danger); }
+.dr .cd.soon { color: var(--ink); }
+.dr .cd.far { color: var(--muted); font-weight: 600; }
+.dr b { display: block; font-weight: 600; line-height: 1.3; }
+.dr .m { font-size: 14px; color: var(--muted); }
+/* bottom nav */
+.bnav { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--bg); padding-bottom: 10px; }
+.bnav > span { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; color: var(--muted); position: relative; }
+.bnav > span.on { color: var(--primary); font-weight: 700; }
+.bnav svg { width: 24px; height: 24px; }
+.bnav .n { position: absolute; top: 6px; left: calc(50% + 6px); font-family: var(--fig); font-size: 12px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--danger); color: var(--bg); display: grid; place-items: center; }
+svg.i { width: 22px; height: 22px; flex-shrink: 0; }
+
+/* forms, sheets, misc */
+.pad { padding: 16px; }
+.h2 { margin: 0; font-size: 22px; font-weight: 700; line-height: 1.25; }
+.lead { margin: 6px 0 0; color: var(--muted); }
+.btn { min-height: 52px; width: 100%; border: 0; border-radius: 10px; background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px; }
+.btn.auto { width: auto; min-height: 44px; font-size: 15px; padding: 0 14px; }
+.btn2 { min-height: 48px; width: 100%; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--bg); color: var(--ink); font-weight: 600; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.tbtn { min-height: 44px; border: 0; background: none; color: var(--primary); font-weight: 600; font-size: 15px; padding: 0; display: inline-flex; align-items: center; gap: 6px; }
+.tbtn.danger { color: var(--danger); }
+.tbtn svg { width: 18px; height: 18px; }
+.lab { display: block; margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.input { min-height: 48px; width: 100%; border-radius: 8px; border: 1.5px solid var(--line-strong); background: var(--bg); color: var(--ink); padding: 10px 12px; font: 400 16px var(--text); }
+.input.big { font-family: var(--fig); font-size: 24px; font-weight: 700; }
+textarea.input { resize: none; }
+.hint { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.field + .field { margin-top: 18px; }
+.segc { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
+.segc > span { min-height: 48px; display: grid; place-items: center; font-weight: 600; border-left: 1.5px solid var(--line-strong); padding: 0 8px; text-align: center; }
+.segc > span:first-child { border-left: 0; }
+.segc > span.on { background: var(--ink); color: var(--bg); }
+.radios { border-top: 1px solid var(--line); }
+.radios > div { min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); }
+.rd { width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--line-strong); flex-shrink: 0; }
+.rd.on { border: 6px solid var(--primary); }
+.cb { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--line-strong); flex-shrink: 0; display: grid; place-items: center; }
+.cb.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.cb svg { width: 14px; height: 14px; }
+.grouph { padding: 14px 16px 4px; font-weight: 700; }
+.grouph span { font-weight: 400; color: var(--muted); }
+.sticky { margin-top: auto; padding: 12px 16px 20px; border-top: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 14px 14px 0 0; padding: 8px 16px 20px; box-shadow: 0 -8px 24px rgb(0 0 0 / .25); }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 10px; opacity: .6; }
+.sheet-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.sheet-h h4 { margin: 0; font-size: 20px; font-weight: 700; }
+.x { width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
+.x svg { width: 20px; height: 20px; }
+.notice { margin: 12px 16px 0; border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px; font-size: 15px; display: grid; grid-template-columns: 1fr auto; gap: 8px 4px; align-items: start; }
+.notice .acts { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; }
+.kv { border-top: 1px solid var(--line); }
+.kv > div { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.kv .v { color: var(--muted); font-size: 15px; }
+.upd { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; }
+.upd .kind { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.upd .kind.off { color: var(--danger); }
+.upd .kind svg { width: 14px; height: 14px; }
+.upd .when { font-size: 14px; color: var(--muted); text-align: right; white-space: nowrap; }
+.upd .what { grid-column: 1 / -1; }
+.upd .what b { font-weight: 600; }
+.upd .note { grid-column: 1 / -1; font-size: 15px; color: var(--ink); }
+.upd .who { grid-column: 1 / -1; font-size: 14px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.upd .who svg { width: 14px; height: 14px; color: var(--primary); }
+.upd.new { background: var(--bg-2); }
+.upd .newdot { font-size: 13px; font-weight: 700; color: var(--primary); }
+.tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 16px; gap: 20px; }
+.tabs > span { min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; color: var(--muted); border-bottom: 2.5px solid transparent; }
+.tabs > span.on { color: var(--ink); border-bottom-color: var(--primary); }
+.grp-h { padding: 14px 16px 6px; font-size: 15px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--line); }
+.due-big { padding: 14px 16px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; align-items: baseline; }
+.due-big .n { font-family: var(--fig); font-weight: 700; font-size: 34px; line-height: 1; grid-row: span 2; }
+.prose { padding: 0 16px; }
+.prose p { margin: 0 0 10px; max-width: 62ch; }
+.links a { display: flex; align-items: center; gap: 10px; min-height: 52px; border-bottom: 1px solid var(--line); color: var(--primary); text-decoration: none; word-break: break-all; font-weight: 500; }
+.links svg { width: 18px; height: 18px; flex-shrink: 0; }
+.lock { min-height: 800px; background: #10302F; color: #EEF5F4; padding: 56px 12px 20px; display: flex; flex-direction: column; gap: 8px; font-family: var(--text); }
+.lock .clock { text-align: center; font-family: var(--fig); font-size: 80px; font-weight: 600; line-height: 1; }
+.lock .date { text-align: center; color: #B9D3D1; margin-bottom: 26px; }
+.notif { background: rgb(244 248 247 / .96); color: #14201F; border-radius: 16px; padding: 10px 12px; display: grid; grid-template-columns: 34px 1fr; gap: 0 10px; }
+.notif .ai { width: 34px; height: 34px; border-radius: 8px; background: #0E5A5B; color: #fff; display: grid; place-items: center; font-family: var(--fig); font-weight: 700; font-size: 13px; grid-row: span 3; }
+.notif .meta { display: flex; justify-content: space-between; font-size: 12px; color: #52605E; }
+.notif .t { font-weight: 700; font-size: 15px; }
+.notif .b { font-size: 15px; }
+.wordmark { font-family: var(--fig); font-weight: 700; font-size: 22px; letter-spacing: .01em; }
+.steps { margin: 6px 0 16px; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.glyph { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line-strong); border-radius: 6px; vertical-align: middle; margin-left: 2px; color: var(--primary); }
+.glyph svg { width: 16px; height: 16px; }
+.shot { border: 6px solid var(--frame); border-radius: 30px; overflow: hidden; width: 260px; flex-shrink: 0; background: var(--bg); }
+.shot .inner { zoom: .666; width: 390px; pointer-events: none; }
+.shot .inner .scr { min-height: 0; }
+/* tablet + desktop shells */
+.split { display: grid; flex: 1; min-height: 0; }
+.rail { background: var(--head); color: var(--on-head); display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; }
+.rail .wordmark { color: var(--on-head); padding: 4px 8px 14px; }
+.rail a { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 8px; color: var(--on-head-muted); text-decoration: none; font-weight: 600; position: relative; }
+.rail a.on { background: rgb(255 255 255 / .12); color: var(--on-head); }
+.rail a svg { width: 22px; height: 22px; }
+.rail a .n { margin-left: auto; font-family: var(--fig); font-size: 13px; font-weight: 700; background: var(--danger); color: var(--bg); border-radius: 9px; padding: 0 6px; }
+.rail .foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px; font-size: 14px; color: var(--on-head-muted); }
+.rail .ab-btn { justify-content: center; }
+.rail.icons a span.lbl { display: none; }
+.rail.icons a { justify-content: center; padding: 0; }
+.pane { border-left: 1px solid var(--line); min-width: 0; display: flex; flex-direction: column; }
+.pane:first-child { border-left: 0; }
+.panehead { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.panehead h4 { margin: 0; font-size: 18px; font-weight: 700; }
+.panehead .s { color: var(--muted); font-size: 14px; }
+.sel { background: var(--primary-soft) !important; }
+/* week grid */
+.week { display: grid; grid-template-columns: 52px repeat(5, minmax(0, 1fr)); position: relative; }
+.week .hd { padding: 10px 8px 8px; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); font-weight: 600; font-size: 15px; }
+.week .hd .fig { font-size: 20px; margin-right: 4px; }
+.week .hd.today { color: var(--primary); }
+.week .hd.today .fig { background: var(--primary); color: var(--on-primary); border-radius: 6px; padding: 0 6px; }
+.week .gut { position: relative; }
+.week .gut span { position: absolute; right: 8px; font-family: var(--fig); font-size: 13px; color: var(--muted); transform: translateY(-50%); }
+.week .col { position: relative; border-left: 1px solid var(--line); background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 52px; }
+.week .col.today { background-color: color-mix(in srgb, var(--primary-soft) 55%, transparent); }
+.blk { position: absolute; left: 4px; right: 4px; border-radius: 6px; padding: 4px 7px; font-size: 13px; line-height: 1.25; overflow: hidden; background: var(--bg-2); border: 1px solid var(--line-strong); }
+.blk b { display: block; font-size: 14px; font-weight: 600; }
+.blk .fig { font-size: 13px; }
+.blk.lecture { background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+.blk.off { background: repeating-linear-gradient(135deg, var(--danger-soft) 0 6px, var(--bg) 6px 12px); border-color: var(--danger); color: var(--muted); }
+.blk.off b { text-decoration: line-through; color: var(--ink); }
+.blk.off .why { color: var(--danger); font-weight: 600; }
+.blk.past { opacity: 1; background: var(--bg); color: var(--muted); }
+.nowline { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); z-index: 2; }
+.nowline::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 999px; background: var(--danger); }
+/* landing + changelog */
+.land { flex: 1; display: flex; flex-direction: column; }
+.land-top { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+.land-top .wordmark { color: var(--primary); }
+.land-main { padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
+.land-main h3 { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 700; text-wrap: balance; }
+.land-main p { margin: 0; color: var(--muted); font-size: 17px; max-width: 46ch; }
+.land-foot { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cl { padding: 8px 16px 24px; }
+.cl h3 { margin: 18px 0 2px; font-size: 26px; font-weight: 700; }
+.cl .rel { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.cl .rel h4 { margin: 0; font-size: 19px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.cl .rel h4 .fig { font-size: 22px; }
+.cl .rel h4 span.d { font-size: 15px; font-weight: 400; color: var(--muted); }
+.cl ul { margin: 8px 0 0; padding-left: 20px; max-width: 64ch; }
+.cl li { margin: 4px 0; }
+.cl .tag { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+@media (max-width: 600px) { .top { position: static; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16ZM10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v9h14v-9h-1"/></symbol>
+  <symbol id="i-addsq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-verified" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></symbol>
+</defs></svg>
+
+<header class="top">
+  <div><h1>CampusOS board v3</h1><p>For Siam's approval by Thu 26 Nov · built on docs/design/critique-beranda.md</p></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-btn="system" aria-pressed="true">System</button><button type="button" data-theme-btn="light" aria-pressed="false">Light</button><button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button></div>
+    <div class="seg" role="group" aria-label="Language of the mockups"><button type="button" data-lang-btn="en" aria-pressed="true">English</button><button type="button" data-lang-btn="id" aria-pressed="false">Indonesia</button></div>
+  </div>
+</header>
+
+<main id="board"></main>
+
+<script>
+(() => {
+/* ---------- copy ---------- */
+const C = {
+  en: {},
+  id: {}
+};
+const T = (k) => (C[LANG][k] ?? C.en[k] ?? k);
+let LANG = "en";
+
+/* ---------- the one sample day: Wednesday 25 November 2026, 10:25 WIB ---------- */
+const DAY = {
+  now: "10:25",
+  classes: [
+    { s:"07:30", e:"09:10", code:"TKE-201", name:"Sistem Digital", type:"lecture", sec:"A", room:"Ruang 301", lect:"Dr. Ir. Rahmat Hidayat, M.T.", state:"past" },
+    { s:"09:20", e:"11:00", code:"TKE-205", name:"Struktur Data", type:"lecture", sec:"A", room:"Ruang 305", was:"Ruang 204", lect:"Nurul Fadhilah, S.T., M.Sc.", state:"cur", by:"Siti Rahma", byRole:"classrep", at:"07:58", note:"Proyektor di 204 rusak." },
+    { s:"11:10", e:"12:00", code:"TKE-108", name:"Matematika Diskrit", type:"lecture", sec:"B", room:"Ruang 207", lect:"Dra. Cut Meutia, M.Si.", state:"next" },
+    { gap:["12:00","13:30"], len:"1:30" },
+    { s:"13:30", e:"16:30", code:"TKE-201P", name:"Praktikum Sistem Digital", type:"lab", sec:"A", room:"Lab Elektronika", lect:"Fajar Maulana", state:"off", by:"Fajar Maulana", byRole:"labassistant", at:"09:47", note:"Asisten ada ujian, praktikum modul 5 di ganti hari sabtu. info lanjut di grup WA" },
+    { s:"16:00", e:"16:50", code:"ADV", name:"Bimbingan Akademik", type:"advising", sec:"-", room:"Ruang Dosen 2", lect:"Dr. Zulfikar Amin, M.Eng.", state:"later" }
+  ],
+  due: [
+    { code:"TKE-201", title:"Kuis 2: perbaikan jawaban", when:{en:"Tue 24 Nov, 23:59", id:"Sel 24 Nov, 23:59"}, cd:{en:["Late","10 h"], id:["Lewat","10 j"]}, cls:"late", grp:"overdue" },
+    { code:"TKE-205", title:"Tugas 3: Implementasi Linked List (single & double), kumpul di e-learning", when:{en:"Today, 23:59", id:"Hari ini, 23:59"}, cd:{en:["13 h","left"], id:["13 j","lagi"]}, cls:"soon", grp:"today" },
+    { code:"TKE-201P", title:"Laporan Praktikum Modul 4: Flip-flop JK & D (format IEEE, maks 6 hlm)", when:{en:"Fri 27 Nov, 16:00", id:"Jum 27 Nov, 16:00"}, cd:{en:["2 d","left"], id:["2 hari","lagi"]}, cls:"soon", grp:"week" },
+    { code:"TKE-108", title:"Latihan soal Bab 5 (relasi rekurens) no. 1–15 ganjil", when:{en:"Mon 30 Nov, 07:30", id:"Sen 30 Nov, 07:30"}, cd:{en:["4 d","left"], id:["4 hari","lagi"]}, cls:"soon", grp:"week" },
+    { code:"TKE-205", title:"Proyek akhir: proposal kelompok (maks 4 orang)", when:{en:"Tue 8 Dec, 23:59", id:"Sel 8 Des, 23:59"}, cd:{en:["13 d","left"], id:["13 hari","lagi"]}, cls:"far", grp:"later" }
+  ]
+};
+Object.assign(C.en, {
+  "nav.today":"Today","nav.assignments":"Assignments","nav.updates":"Updates",
+  "today.date":"Wed 25 Nov","today.sum":"5 classes · 1 cancelled · 1 moved",
+  "now.k":"Now","now.until":"until 11:00","now.movedBy":"Moved from {was} by {by}, {at}",
+  "type.lecture":"Lecture","type.lab":"Lab","type.advising":"Advising","sec":"Sec {s}",
+  "st.next":"Next","st.off":"Cancelled","why.absent":"Lecturer absent","why.absentLab":"Lab assistant absent",
+  "gap":"Free {s}–{e} ({len})","sec.today":"Today","sec.due":"Due soon","sec.all":"All",
+  "lang":"ID","report":"Report change","role.classrep":"class rep","role.labassistant":"lab assistant","role.lecturer":"lecturer"
+});
+Object.assign(C.id, {
+  "nav.today":"Hari ini","nav.assignments":"Tugas","nav.updates":"Info kelas",
+  "today.date":"Rab 25 Nov","today.sum":"5 kelas · 1 batal · 1 pindah",
+  "now.k":"Sekarang","now.until":"sampai 11:00","now.movedBy":"Pindah dari {was} oleh {by}, {at}",
+  "type.lecture":"Kuliah","type.lab":"Praktikum","type.advising":"Bimbingan","sec":"Kelas {s}",
+  "st.next":"Berikutnya","st.off":"Batal","why.absent":"Dosen berhalangan","why.absentLab":"Asisten berhalangan",
+  "gap":"Kosong {s}–{e} ({len})","sec.today":"Hari ini","sec.due":"Tenggat dekat","sec.all":"Semua",
+  "lang":"EN","report":"Lapor perubahan","role.classrep":"ketua kelas","role.labassistant":"asisten lab","role.lecturer":"dosen"
+});
+const fmt = (k, o = {}) => T(k).replace(/\{(\w+)\}/g, (_, x) => o[x] ?? "");
+
+/* ---------- components ---------- */
+const appbar = (title, sub, { report = true, back = false } = {}) => `
+  <div class="appbar">
+    <div class="r1">
+      ${back ? `<button class="ab-icon" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>` : ""}
+      <h3>${title}</h3>
+      <button class="ab-lang" lang="${LANG === "en" ? "id" : "en"}">${T("lang")}</button>
+      <button class="ab-av" aria-label="Account">S</button>
+    </div>
+    ${sub || report ? `<div class="r2"><span class="s">${sub || ""}</span>${report ? `<button class="ab-btn"><svg aria-hidden="true"><use href="#i-plus"/></svg>${report === true ? T("report") : report}</button>` : ""}</div>` : ""}
+  </div>`;
+const nowBand = (c) => `
+  <div class="now">
+    <div class="k"><span>${T("now.k")}</span><b class="fig">${T("now.until")}</b></div>
+    <div class="room"><span class="mk">${c.room}</span></div>
+    <div class="cls">${c.name}</div>
+    <div class="meta"><span class="fig">${c.code}</span> · ${c.lect}</div>
+    <div class="chg">${fmt("now.movedBy", { was: `<span class="old">${c.was.replace("Ruang ", "")}</span>`, by: c.by, at: `<span class="fig">${c.at}</span>` })}</div>
+  </div>`;
+const dur = (a, b) => { const m = (h) => +h.slice(0, 2) * 60 + +h.slice(3); const d = m(b) - m(a); const u = LANG === "en" ? ["h","m"] : ["j","m"]; return d >= 60 ? `${Math.floor(d / 60)}${u[0]}${d % 60 ? " " + (d % 60) + u[1] : ""}` : `${d}${u[1]}`; };
+const row = (c) => {
+  if (c.gap) return `<div class="gap">${fmt("gap", { s: `<span class="fig">${c.gap[0]}</span>`, e: `<span class="fig">${c.gap[1]}</span>`, len: `<span class="fig">${LANG === "en" ? "1 h 30 min" : "1 j 30 mnt"}</span>` })}</div>`;
+  const meta = `${c.room} · <span class="fig">${c.code}</span> · ${T("type." + c.type)}${c.sec !== "-" ? " · " + fmt("sec", { s: c.sec }) : ""}`;
+  const st = c.state === "cur" ? `<span class="st next">${T("now.k")}</span>` : c.state === "next" ? `<span class="st next">${T("st.next")}</span>`
+    : c.state === "off" ? `<span class="st off"><svg aria-hidden="true"><use href="#i-x"/></svg>${T("st.off")}</span>` : "<span></span>";
+  const body = c.state === "off"
+    ? `<b>${c.name}</b><div class="why">${T(c.type === "lab" ? "why.absentLab" : "why.absent")}</div><div class="note">“${c.note}” · ${c.by}, <span class="fig">${c.at}</span></div>`
+    : c.was ? `<b>${c.name}</b><div class="m"><span class="mk">${c.room}</span> <span class="old">${c.was.replace("Ruang ","")}</span> · <span class="fig">${c.code}</span> · ${T("type." + c.type)}</div>` : `<b>${c.name}</b><div class="m">${meta}</div>`;
+  return `<div class="tr ${c.state}"><div class="t">${c.s}<small>${c.e}</small><span class="dur">${dur(c.s, c.e)}</span></div><div class="c">${body}</div>${st}</div>`;
+};
+const dueRow = (a) => `<a class="dr" href="#detail"><div class="cd ${a.cls}">${a.cd[LANG][0]}<small>${a.cd[LANG][1]}</small></div><div><b>${a.title}</b><div class="m"><span class="fig">${a.code}</span> · <span class="fig">${a.when[LANG]}</span></div></div></a>`;
+const bnav = (on, upd = 2) => `<nav class="bnav">
+  <span class="${on === "today" ? "on" : ""}"><svg aria-hidden="true"><use href="#i-cal"/></svg>${T("nav.today")}</span>
+  <span class="${on === "assign" ? "on" : ""}"><svg aria-hidden="true"><use href="#i-list"/></svg>${T("nav.assignments")}</span>
+  <span class="${on === "upd" ? "on" : ""}"><svg aria-hidden="true"><use href="#i-bell"/></svg>${T("nav.updates")}${upd ? `<i class="n">${upd}</i>` : ""}</span>
+</nav>`;
+
+/* ---------- more copy ---------- */
+Object.assign(C.en, {
+  "login.title":"Sign in to CampusOS","login.body":"Class schedule, assignments and room changes for Computer Engineering students at Universitas Syiah Kuala.","login.google":"Continue with Google","login.hint":"Use the Google account you use for campus.","login.changelog":"What's new",
+  "onb.step":"Step {n} of 3","onb.lang":"Choose your language","onb.continue":"Continue","onb.classes":"Your classes this semester","onb.classesBody":"Tick every class and section you attend. You can change this later.","onb.search":"Search code or name","onb.count":"Continue · {n} classes",
+  "onb.remind":"Reminders","onb.remindBody":"CampusOS can notify you 30 minutes before each class, before deadlines, and when a class is cancelled or moved.","onb.turnOn":"Turn on reminders","onb.notNow":"Not now",
+  "assign.title":"Assignments","assign.add":"Add","assign.todo":"To do","assign.done":"Done","g.overdue":"Overdue","g.today":"Today","g.week":"This week","g.later":"Later",
+  "det.due":"Due","det.left":"13 hours left","det.ins":"Instructions","det.links":"Links","det.by":"Added by {by}, {role} · {at}","det.done":"Mark as done","det.delete":"Delete assignment","det.delConfirm":"Delete for all 38 students? This can't be undone.","det.delYes":"Delete","det.delNo":"Keep",
+  "new.title":"New assignment","new.class":"Class","new.name":"Title","new.due":"Due (WIB)","new.next":"Next class","new.week":"In 1 week","new.pick":"Other date","new.readback":"Mon 30 Nov, 13:30 WIB","new.ins":"Instructions (optional)","new.links":"Link (optional)","new.post":"Post to 38 students",
+  "upd.title":"Updates","upd.sub":"Only class reps, lab assistants and lecturers can post","upd.off":"Cancelled","upd.moved":"Room moved","upd.new":"New","upd.you":"you",
+  "rep.title":"Report a change","rep.kind":"What changed","rep.session":"Which session","rep.other":"Other date","rep.room":"New room","rep.note":"Note for students (optional)","rep.send":"Send to 38 students",
+  "acc.title":"Account","acc.classes":"Change classes","acc.classesV":"5 classes","acc.lang":"Language","acc.remind":"Reminders","acc.remindV":"On","acc.out":"Sign out",
+  "rem.text":"Reminders are off. Turn them on to hear when a class is cancelled or moved.","rem.on":"Turn on","rem.later":"Later",
+  "ios.text":"On iPhone, reminders only work after you add CampusOS to the Home Screen.","ios.how":"Show me how","ios.title":"Add to Home Screen","ios.s1":"Tap Share at the bottom of Safari","ios.s2":"Choose Add to Home Screen","ios.s3":"Open CampusOS from the new icon and turn on reminders","ios.ok":"Done",
+  "push.soon":"TKE-108 starts in 30 min","push.soonB":"Matematika Diskrit · 11:10 · Ruang 207","push.off":"TKE-201P cancelled","push.offB":"Today 13:30: lab assistant absent. Modul 5 moves to Saturday.","push.moved":"TKE-205: room moved","push.movedB":"Today 09:20 → Ruang 305. Proyektor di 204 rusak.","push.now":"now","push.lockDate":"Wednesday 25 November",
+  "land.h":"Your timetable, with room changes the moment a class rep posts them.","land.p":"For Computer Engineering students at Universitas Syiah Kuala. Class reps post a cancellation or a new room; the whole class sees it on Today and gets a notification.","land.cta":"Sign in with Google","land.cl":"Changelog","land.made":"Made by Sudo Squad for GDG ITB case 1","land.shot":"Screenshot of Today",
+  "cl.title":"Changelog","cl.home":"CampusOS","cl.sample":"Sample entries until the first release",
+  "tab.today":"Today, Wed 25 Nov","tab.week":"Week of 23–27 Nov","side.changes":"Changes this week","side.due":"Due soon",
+  "wk.mon":"Mon","wk.tue":"Tue","wk.wed":"Wed","wk.thu":"Thu","wk.fri":"Fri"
+});
+Object.assign(C.id, {
+  "login.title":"Masuk ke CampusOS","login.body":"Jadwal kuliah, tugas, dan info pindah ruang untuk mahasiswa Teknik Komputer Universitas Syiah Kuala.","login.google":"Masuk dengan Google","login.hint":"Pakai akun Google yang biasa kamu pakai untuk kuliah.","login.changelog":"Yang baru",
+  "onb.step":"Langkah {n} dari 3","onb.lang":"Pilih bahasa","onb.continue":"Lanjut","onb.classes":"Kelas kamu semester ini","onb.classesBody":"Centang semua kelas dan seksi yang kamu ikuti. Bisa diubah nanti.","onb.search":"Cari kode atau nama","onb.count":"Lanjut · {n} kelas",
+  "onb.remind":"Pengingat","onb.remindBody":"CampusOS bisa memberi notifikasi 30 menit sebelum kelas, sebelum tenggat, dan saat kelas batal atau pindah ruang.","onb.turnOn":"Aktifkan pengingat","onb.notNow":"Nanti saja",
+  "assign.title":"Tugas","assign.add":"Tambah","assign.todo":"Belum","assign.done":"Selesai","g.overdue":"Lewat tenggat","g.today":"Hari ini","g.week":"Minggu ini","g.later":"Nanti",
+  "det.due":"Tenggat","det.left":"13 jam lagi","det.ins":"Instruksi","det.links":"Tautan","det.by":"Ditambahkan oleh {by}, {role} · {at}","det.done":"Tandai selesai","det.delete":"Hapus tugas","det.delConfirm":"Hapus untuk 38 mahasiswa? Tidak bisa dibatalkan.","det.delYes":"Hapus","det.delNo":"Jangan",
+  "new.title":"Tugas baru","new.class":"Kelas","new.name":"Judul","new.due":"Tenggat (WIB)","new.next":"Pertemuan berikutnya","new.week":"1 minggu lagi","new.pick":"Tanggal lain","new.readback":"Sen 30 Nov, 13:30 WIB","new.ins":"Instruksi (opsional)","new.links":"Tautan (opsional)","new.post":"Kirim ke 38 mahasiswa",
+  "upd.title":"Info kelas","upd.sub":"Hanya ketua kelas, asisten lab, dan dosen yang bisa memposting","upd.off":"Batal","upd.moved":"Pindah ruang","upd.new":"Baru","upd.you":"kamu",
+  "rep.title":"Lapor perubahan","rep.kind":"Apa yang berubah","rep.session":"Sesi yang mana","rep.other":"Tanggal lain","rep.room":"Ruang baru","rep.note":"Catatan untuk teman sekelas (opsional)","rep.send":"Kirim ke 38 mahasiswa",
+  "acc.title":"Akun","acc.classes":"Ubah kelas","acc.classesV":"5 kelas","acc.lang":"Bahasa","acc.remind":"Pengingat","acc.remindV":"Aktif","acc.out":"Keluar",
+  "rem.text":"Pengingat belum aktif. Aktifkan supaya tahu kalau kelas batal atau pindah ruang.","rem.on":"Aktifkan","rem.later":"Nanti",
+  "ios.text":"Di iPhone, pengingat hanya jalan setelah CampusOS ditambahkan ke Layar Utama.","ios.how":"Lihat caranya","ios.title":"Tambah ke Layar Utama","ios.s1":"Ketuk Bagikan di bawah Safari","ios.s2":"Pilih Tambah ke Layar Utama","ios.s3":"Buka CampusOS dari ikon baru lalu aktifkan pengingat","ios.ok":"Selesai",
+  "push.soon":"TKE-108 mulai 30 menit lagi","push.soonB":"Matematika Diskrit · 11:10 · Ruang 207","push.off":"TKE-201P batal","push.offB":"Hari ini 13:30: asisten berhalangan. Modul 5 pindah ke Sabtu.","push.moved":"TKE-205: pindah ruang","push.movedB":"Hari ini 09:20 → Ruang 305. Proyektor di 204 rusak.","push.now":"sekarang","push.lockDate":"Rabu, 25 November",
+  "land.h":"Jadwal kuliahmu, dengan info pindah ruang begitu ketua kelas mengirimnya.","land.p":"Untuk mahasiswa Teknik Komputer Universitas Syiah Kuala. Ketua kelas mengirim info batal atau ruang baru; seluruh kelas melihatnya di Hari ini dan dapat notifikasi.","land.cta":"Masuk dengan Google","land.cl":"Catatan rilis","land.made":"Dibuat oleh Sudo Squad untuk GDG ITB case 1","land.shot":"Tangkapan layar Hari ini",
+  "cl.title":"Catatan rilis","cl.home":"CampusOS","cl.sample":"Contoh isi sampai rilis pertama",
+  "tab.today":"Hari ini, Rab 25 Nov","tab.week":"Minggu 23–27 Nov","side.changes":"Perubahan minggu ini","side.due":"Tenggat dekat",
+  "wk.mon":"Sen","wk.tue":"Sel","wk.wed":"Rab","wk.thu":"Kam","wk.fri":"Jum"
+});
+
+/* updates feed: same events as Today, newest first */
+const UPD = [
+  { kind:"off", cls:"Praktikum Sistem Digital", code:"TKE-201P", when:{en:"Today 13:30–16:30", id:"Hari ini 13:30–16:30"}, note:"Asisten ada ujian, praktikum modul 5 di ganti hari sabtu. info lanjut di grup WA", by:"Fajar Maulana", role:"labassistant", at:{en:"09:47", id:"09:47"}, isNew:true },
+  { kind:"moved", cls:"Struktur Data", code:"TKE-205", when:{en:"Today 09:20", id:"Hari ini 09:20"}, from:"204", to:"Ruang 305", note:"Proyektor di 204 rusak.", by:"Siti Rahma", role:"classrep", you:true, at:{en:"07:58", id:"07:58"}, isNew:false },
+  { kind:"moved", cls:"Matematika Diskrit", code:"TKE-108", when:{en:"Thu 26 Nov 11:10", id:"Kam 26 Nov 11:10"}, from:"207", to:"Ruang 302", note:"Ruang 207 dipakai ujian susulan.", by:"Dra. Cut Meutia, M.Si.", role:"lecturer", at:{en:"Yesterday 20:12", id:"Kemarin 20:12"}, isNew:false },
+  { kind:"off", cls:"Sistem Digital", code:"TKE-201", when:{en:"Fri 27 Nov 08:00–09:40", id:"Jum 27 Nov 08:00–09:40"}, note:"Saya dinas ke Medan. Bab 6 dibaca mandiri, kuis minggu depan.", by:"Dr. Ir. Rahmat Hidayat, M.T.", role:"lecturer", at:{en:"Mon 23 Nov", id:"Sen 23 Nov"}, isNew:false }
+];
+/* week: Mon 23 – Fri 27 Nov */
+const WEEK = [
+  [ {s:"07:30",e:"09:10",code:"TKE-201",n:"Sistem Digital",r:"Ruang 301",t:"lecture",past:1}, {s:"13:30",e:"15:10",code:"TKE-205",n:"Struktur Data",r:"Ruang 204",t:"lecture",past:1} ],
+  [ {s:"10:00",e:"11:40",code:"TKE-108",n:"Matematika Diskrit",r:"Ruang 207",t:"lecture",past:1} ],
+  DAY.classes.filter((c) => !c.gap).map((c) => ({ s:c.s, e:c.e, code:c.code, n:c.name, r:c.room, was:c.was, t:c.type, off:c.state === "off", past:c.state === "past" })),
+  [ {s:"11:10",e:"12:00",code:"TKE-108",n:"Matematika Diskrit",r:"Ruang 302",was:"Ruang 207",t:"lecture"}, {s:"14:00",e:"15:40",code:"TKE-205",n:"Struktur Data",r:"Ruang 204",t:"lecture"} ],
+  [ {s:"08:00",e:"09:40",code:"TKE-201",n:"Sistem Digital",r:"Ruang 301",t:"lecture",off:1} ]
+];
+const ROLE = (r) => T("role." + r);
+const ICON = (id, cls = "") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+
+/* ---------- screens ---------- */
+const S = {};
+S.todayPhone = (opts = {}) => {
+  const cur = DAY.classes.find((c) => c.state === "cur");
+  return `<div class="scr">
+    ${appbar(T("today.date"), T("today.sum"))}
+    ${opts.banner || ""}
+    ${nowBand(cur)}
+    <div class="sechead"><h4>${T("sec.today")}</h4></div>
+    <div class="tt">${DAY.classes.map((c) => row(c)).join("")}</div>
+    <div class="sechead"><h4>${T("sec.due")}</h4><a href="#assignments">${T("sec.all")}</a></div>
+    <div class="tt" style="margin-bottom:12px">${DAY.due.slice(0, 2).map(dueRow).join("")}</div>
+    ${opts.nonav ? "" : bnav("today")}
+    ${opts.over || ""}
+  </div>`;
+};
+S.login = () => `<div class="scr">
+  <div class="land-top"><span class="wordmark">CampusOS</span><button class="tbtn" lang="${LANG === "en" ? "id" : "en"}">${LANG === "en" ? "Bahasa Indonesia" : "English"}</button></div>
+  <div class="pad" style="margin-top:auto">
+    <h3 class="h2" style="font-size:26px">${T("login.title")}</h3>
+    <p class="lead">${T("login.body")}</p>
+  </div>
+  <div class="sticky" style="border-top:0">
+    <button class="btn"><span style="width:22px;height:22px;border-radius:4px;background:var(--on-primary);color:var(--primary);display:grid;place-items:center;font-weight:800;font-size:14px">G</span>${T("login.google")}</button>
+    <p class="hint" style="text-align:center;margin:2px 0 6px">${T("login.hint")}</p>
+    <button class="tbtn" style="align-self:center">${T("login.changelog")}</button>
+  </div></div>`;
+const stepBar = (n, back) => `<div class="appbar"><div class="r1">${back ? `<button class="ab-icon" aria-label="Back">${ICON("i-back", "i")}</button>` : ""}<h3 style="font-size:17px;font-weight:600">${fmt("onb.step", { n })}</h3></div></div>`;
+S.onbLang = () => `<div class="scr">${stepBar(1)}
+  <div class="pad"><h3 class="h2">${T("onb.lang")}</h3>${LANG === "en" ? `<p class="lead" lang="id">Pilih bahasa</p>` : `<p class="lead" lang="en">Choose your language</p>`}</div>
+  <div class="radios" style="margin:0 16px">
+    <div><span class="rd ${LANG === "en" ? "on" : ""}"></span><span lang="en">English</span></div>
+    <div><span class="rd ${LANG === "id" ? "on" : ""}"></span><span lang="id">Bahasa Indonesia</span></div>
+  </div>
+  <div class="sticky"><button class="btn">${T("onb.continue")}</button></div></div>`;
+const OPTS = [
+  ["TKE-108","Matematika Diskrit",[["A","Sen 07:30 · Rab 11:10",0],["B","Sel 10:00 · Rab 11:10",1]]],
+  ["TKE-201","Sistem Digital",[["A","Sen 07:30 · Rab 07:30",1],["B","Sel 13:30 · Kam 07:30",0]]],
+  ["TKE-201P","Praktikum Sistem Digital",[["A","Rab 13:30",1],["B","Kam 13:30",0]]],
+  ["TKE-205","Struktur Data",[["A","Sen 13:30 · Rab 09:20",1]]],
+  ["ADV","Bimbingan Akademik",[["-","Rab 16:00",1]]]
+];
+const dayFix = (s) => LANG === "en" ? s.replace(/Sen/g,"Mon").replace(/Sel/g,"Tue").replace(/Rab/g,"Wed").replace(/Kam/g,"Thu").replace(/Jum/g,"Fri") : s;
+S.onbClasses = () => `<div class="scr">${stepBar(2, true)}
+  <div class="pad" style="padding-bottom:8px"><h3 class="h2">${T("onb.classes")}</h3><p class="lead">${T("onb.classesBody")}</p>
+  <div style="position:relative;margin-top:12px"><svg style="position:absolute;left:12px;top:14px;width:20px;height:20px;color:var(--muted)" aria-hidden="true"><use href="#i-search"/></svg><input class="input" style="padding-left:40px" placeholder="${T("onb.search")}" aria-label="${T("onb.search")}"></div></div>
+  ${OPTS.map(([code, name, secs]) => `<div class="grouph"><span class="fig" style="color:var(--ink);font-weight:700">${code}</span> <span>${name}</span></div>
+    <div class="radios" style="margin:0 16px">${secs.map(([s, sl, on]) => `<div><span class="cb ${on ? "on" : ""}">${on ? ICON("i-check") : ""}</span><span>${s === "-" ? "" : fmt("sec", { s }) + " · "}<span class="fig">${dayFix(sl)}</span></span></div>`).join("")}</div>`).join("")}
+  <div class="sticky" style="margin-top:16px"><button class="btn">${fmt("onb.count", { n: 5 })}</button></div></div>`;
+S.onbRemind = () => `<div class="scr">${stepBar(3, true)}
+  <div class="pad"><h3 class="h2">${T("onb.remind")}</h3><p class="lead" style="color:var(--ink)">${T("onb.remindBody")}</p></div>
+  <div class="pad" style="padding-top:0"><div class="notif" style="background:var(--bg-2);color:var(--ink)"><span class="ai">C</span><div class="meta" style="color:var(--muted)"><span>CampusOS</span><span class="fig">10:40</span></div><div class="t">${T("push.soon")}</div><div class="b">${T("push.soonB")}</div></div></div>
+  <div class="sticky"><button class="btn">${T("onb.turnOn")}</button><button class="btn2">${T("onb.notNow")}</button></div></div>`;
+const groups = [["overdue","g.overdue"],["today","g.today"],["week","g.week"],["later","g.later"]];
+const assignList = (sel) => groups.map(([g, k]) => { const items = DAY.due.filter((a) => a.grp === g); return items.length ? `<div class="grp-h">${T(k)}</div>${items.map((a) => dueRow(a).replace('class="dr"', `class="dr${sel === a.code + a.grp ? " sel" : ""}"`)).join("")}` : ""; }).join("");
+S.assignPhone = () => `<div class="scr">${appbar(T("assign.title"), "", { report: T("assign.add") })}
+  <div class="tabs"><span class="on">${T("assign.todo")} <span class="fig">5</span></span><span>${T("assign.done")} <span class="fig">3</span></span></div>
+  ${assignList()}${bnav("assign")}</div>`;
+const detailBody = () => `
+  <div class="pad" style="padding-bottom:6px"><div class="meta" style="color:var(--muted);font-size:15px"><span class="fig">TKE-205</span> · Struktur Data · ${fmt("sec", { s: "A" })}</div>
+    <h3 class="h2" style="margin-top:4px">Tugas 3: Implementasi Linked List (single & double), kumpul di e-learning</h3></div>
+  <div class="due-big"><span class="n">13 ${LANG === "en" ? "h" : "j"}</span><span style="font-weight:600">${T("det.due")} <span class="fig">${LANG === "en" ? "Today, Wed 25 Nov, 23:59" : "Hari ini, Rab 25 Nov, 23:59"}</span> WIB</span><span style="color:var(--muted);font-size:15px">${T("det.left")}</span></div>
+  <div class="sechead"><h4>${T("det.ins")}</h4></div>
+  <div class="prose"><p>Implementasikan singly dan doubly linked list dalam C: insert di depan/belakang, delete by value, search. Sertakan laporan singkat (maks 2 halaman) berisi kompleksitas waktu tiap operasi.</p><p>Kumpulkan satu file ZIP: NIM_Nama_Tugas3.zip. Telat = nilai dikurangi 10% per hari.</p></div>
+  <div class="sechead"><h4>${T("det.links")}</h4></div>
+  <div class="links" style="padding:0 16px;border-top:1px solid var(--line);margin:0 16px"><a href="#detail" style="padding:0">${ICON("i-link")}elearning.usk.ac.id/mod/assign/view.php?id=4127</a></div>
+  <p class="hint" style="padding:12px 16px 0;margin:0">${fmt("det.by", { by: "Siti Rahma", role: ROLE("classrep"), at: LANG === "en" ? "Fri 20 Nov" : "Jum 20 Nov" })}</p>
+  <div class="pad" style="display:flex;flex-direction:column;gap:10px"><button class="btn2">${ICON("i-check", "i")}${T("det.done")}</button>
+    <button class="tbtn danger" style="align-self:flex-start">${ICON("i-trash")}${T("det.delete")}</button></div>`;
+S.detailPhone = () => `<div class="scr">${appbar(T("assign.title"), "", { report: false, back: true })}${detailBody()}${bnav("assign")}</div>`;
+S.newPhone = () => `<div class="scr"><div class="appbar"><div class="r1"><button class="ab-icon" aria-label="Close">${ICON("i-x", "i")}</button><h3>${T("new.title")}</h3></div></div>
+  <div class="pad">
+    <div class="field"><span class="lab">${T("new.class")}</span><div class="segc"><span class="on"><span class="fig">TKE-205</span>&nbsp;· A</span><span><span class="fig">TKE-108</span>&nbsp;· B</span></div></div>
+    <div class="field"><label class="lab" for="nt">${T("new.name")}</label><input id="nt" class="input" value="Tugas 4: Stack dan Queue pakai linked list dari Tugas 3"></div>
+    <div class="field"><span class="lab">${T("new.due")}</span><div class="segc"><span class="on">${T("new.next")}</span><span>${T("new.week")}</span><span>${T("new.pick")}</span></div><p class="hint" style="color:var(--ink);font-weight:600"><span class="fig">${T("new.readback")}</span></p></div>
+    <div class="field"><label class="lab" for="ni">${T("new.ins")}</label><textarea id="ni" class="input" rows="3">Push, pop, enqueue, dequeue + contoh output tiap langkah.</textarea></div>
+    <div class="field"><label class="lab" for="nl">${T("new.links")}</label><input id="nl" class="input" placeholder="https://"></div>
+  </div>
+  <div class="sticky"><button class="btn">${T("new.post")}</button></div></div>`;
+const updItem = (u) => `<div class="upd ${u.isNew ? "new" : ""}">
+  <span class="kind ${u.kind === "off" ? "off" : ""}">${u.kind === "off" ? ICON("i-x") + T("upd.off") : T("upd.moved")}${u.isNew ? ` <span class="newdot">· ${T("upd.new")}</span>` : ""}</span>
+  <span class="when fig">${u.at[LANG]}</span>
+  <div class="what"><b>${u.cls}</b> · <span class="fig">${u.code}</span><br><span class="fig">${u.when[LANG]}</span>${u.to ? ` · <span class="old">${u.from}</span> → <span class="mk">${u.to}</span>` : ""}</div>
+  <div class="note">“${u.note}”</div>
+  <span class="who">${u.by}, ${ROLE(u.role)}${u.you ? ` (${T("upd.you")})` : ""} ${ICON("i-verified")}</span></div>`;
+S.updPhone = () => `<div class="scr">${appbar(T("upd.title"), T("upd.sub"))}${UPD.map(updItem).join("")}${bnav("upd", 1)}</div>`;
+S.reportPhone = () => S.todayPhone({ over: `<div class="scrim"></div><div class="sheet"><div class="grab"></div>
+  <div class="sheet-h"><h4>${T("rep.title")}</h4><button class="x" aria-label="Close">${ICON("i-x")}</button></div>
+  <p class="hint" style="margin:0 0 14px"><b style="color:var(--ink)">Struktur Data</b> · <span class="fig">TKE-205</span> · ${fmt("sec", { s: "A" })}</p>
+  <div class="field"><span class="lab">${T("rep.kind")}</span><div class="segc"><span>${T("upd.off")}</span><span class="on">${T("upd.moved")}</span></div></div>
+  <div class="field"><span class="lab">${T("rep.session")}</span><div class="radios">
+    <div><span class="rd on"></span><span class="fig">${LANG === "en" ? "Today 09:20–11:00" : "Hari ini 09:20–11:00"}</span></div>
+    <div><span class="rd"></span><span class="fig">${LANG === "en" ? "Mon 30 Nov 13:30–15:10" : "Sen 30 Nov 13:30–15:10"}</span></div>
+    <div><span class="rd"></span>${T("rep.other")}</div></div></div>
+  <div class="field"><label class="lab" for="rr">${T("rep.room")}</label><input id="rr" class="input big" value="Ruang 305"></div>
+  <div class="field"><label class="lab" for="rn">${T("rep.note")}</label><input id="rn" class="input" value="Proyektor di 204 rusak."></div>
+  <div style="margin-top:16px"><button class="btn">${T("rep.send")}</button></div></div>` });
+S.accountPhone = () => S.todayPhone({ over: `<div class="scrim"></div><div class="sheet"><div class="grab"></div>
+  <div class="sheet-h"><h4>${T("acc.title")}</h4><button class="x" aria-label="Close">${ICON("i-x")}</button></div>
+  <p style="margin:0"><b>Siti Rahma</b></p><p class="hint" style="margin:0 0 12px">siti.rahma@mhs.usk.ac.id · ${ROLE("classrep")} TKE-205</p>
+  <div class="kv"><div><span>${T("acc.classes")}</span><span class="v">${T("acc.classesV")} ›</span></div>
+    <div><span>${T("acc.lang")}</span><span class="segc" style="width:170px"><span class="${LANG === "en" ? "on" : ""}" style="min-height:40px">EN</span><span class="${LANG === "id" ? "on" : ""}" style="min-height:40px">ID</span></span></div>
+    <div><span>${T("acc.remind")}</span><span class="v">${T("acc.remindV")}</span></div></div>
+  <div style="margin-top:16px"><button class="btn2" style="color:var(--danger);border-color:var(--danger)">${T("acc.out")}</button></div></div>` });
+S.remindPhone = () => S.todayPhone({ banner: `<div class="notice"><span>${T("rem.text")}</span><button class="x" style="margin:-10px -10px 0 0" aria-label="Dismiss">${ICON("i-x")}</button><div class="acts"><button class="btn auto">${T("rem.on")}</button><button class="tbtn">${T("rem.later")}</button></div></div>` });
+S.iosPhone = () => S.todayPhone({ banner: `<div class="notice"><span>${T("ios.text")}</span><span></span><div class="acts"><button class="tbtn">${T("ios.how")}</button></div></div>`, over: `<div class="scrim"></div><div class="sheet"><div class="grab"></div>
+  <div class="sheet-h"><h4>${T("ios.title")}</h4><button class="x" aria-label="Close">${ICON("i-x")}</button></div>
+  <ol class="steps"><li>${T("ios.s1")} <span class="glyph">${ICON("i-share")}</span></li><li>${T("ios.s2")} <span class="glyph">${ICON("i-addsq")}</span></li><li>${T("ios.s3")}</li></ol>
+  <button class="btn">${T("ios.ok")}</button></div>` });
+S.pushPhone = () => `<div class="lock"><div class="clock">10:41</div><div class="date">${T("push.lockDate")}</div>
+  ${[["10:40", "push.soon", "push.soonB"], ["09:47", "push.off", "push.offB"], ["07:58", "push.moved", "push.movedB"]].map(([t, a, b]) => `<div class="notif"><span class="ai">C</span><div class="meta"><span>CampusOS</span><span class="fig">${t}</span></div><div class="t">${T(a)}</div><div class="b">${T(b)}</div></div>`).join("")}</div>`;
+const shot = () => `<div class="shot" role="img" aria-label="${T("land.shot")}"><div class="inner">${S.todayPhone({ nonav: false })}</div></div>`;
+S.landingPhone = () => `<div class="scr"><div class="land">
+  <div class="land-top"><span class="wordmark">CampusOS</span><button class="tbtn" lang="${LANG === "en" ? "id" : "en"}">${LANG === "en" ? "Bahasa Indonesia" : "English"}</button></div>
+  <div class="land-main"><h3>${T("land.h")}</h3><p>${T("land.p")}</p>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn">${T("land.cta")}</button><a class="tbtn" href="#changelog" style="align-self:center">${T("land.cl")}</a></div>
+    <div style="display:flex;justify-content:center">${shot()}</div></div>
+  <div class="land-foot"><span>${T("land.made")}</span></div></div></div>`;
+S.landingDesk = () => `<div class="scr"><div class="land">
+  <div class="land-top" style="padding:18px 40px"><span class="wordmark">CampusOS</span><span style="display:flex;gap:20px;align-items:center"><a class="tbtn" href="#changelog">${T("land.cl")}</a><button class="tbtn" lang="${LANG === "en" ? "id" : "en"}">${LANG === "en" ? "Bahasa Indonesia" : "English"}</button><button class="btn auto">${T("land.cta")}</button></span></div>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:56px;align-items:center;padding:48px 72px 0;flex:1">
+    <div><h3 style="margin:0;font-size:44px;line-height:1.12;font-weight:700;max-width:16ch;text-wrap:balance">${T("land.h")}</h3><p style="margin:18px 0 28px;font-size:19px;color:var(--muted);max-width:48ch">${T("land.p")}</p><button class="btn auto" style="min-height:52px;font-size:17px;padding:0 22px">${T("land.cta")}</button></div>
+    <div style="align-self:end">${shot().replace('class="shot"', 'class="shot" style="border-bottom:0;border-radius:30px 30px 0 0;height:440px"').replace('zoom: .666', '')}</div></div>
+  <div class="land-foot" style="margin-top:0;padding:14px 40px"><span>${T("land.made")}</span><a class="tbtn" href="#changelog" style="min-height:0">${T("land.cl")}</a></div></div></div>`;
+const RELEASES = () => [
+  ["0.2.0", LANG === "en" ? "26 Nov 2026" : "26 Nov 2026", LANG === "en" ? ["Today shows your classes with room changes and cancellations.", "Sign in with Google and pick your classes.", "English and Indonesian."] : ["Hari ini menampilkan kelas kamu, lengkap dengan info pindah ruang dan batal.", "Masuk dengan Google dan pilih kelas.", "Bahasa Inggris dan Indonesia."]],
+  ["0.1.0", "24 Nov 2026", LANG === "en" ? ["Project set up: Next.js, Firebase, installable on phones."] : ["Proyek disiapkan: Next.js, Firebase, bisa dipasang di ponsel."]]
+];
+const clBody = () => `<p class="tag">${T("cl.sample")}</p>${RELEASES().map(([v, d, items]) => `<div class="rel"><h4><span class="fig">${v}</span><span class="d">${d}</span></h4><ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul></div>`).join("")}`;
+S.changelogPhone = () => `<div class="scr"><div class="land-top"><span class="wordmark">CampusOS</span><button class="tbtn">${T("land.cta")}</button></div><div class="cl"><h3>${T("cl.title")}</h3>${clBody()}</div></div>`;
+S.changelogDesk = () => `<div class="scr"><div class="land-top" style="padding:18px 40px"><span class="wordmark">CampusOS</span><span style="display:flex;gap:20px;align-items:center"><button class="tbtn" lang="${LANG === "en" ? "id" : "en"}">${LANG === "en" ? "Bahasa Indonesia" : "English"}</button><button class="btn auto">${T("land.cta")}</button></span></div><div class="cl" style="padding:24px 0 40px;width:min(680px,100%);margin:0 auto"><h3 style="font-size:36px">${T("cl.title")}</h3>${clBody()}</div></div>`;
+
+/* tablet + desktop */
+const rail = (on, icons) => `<nav class="rail ${icons ? "icons" : ""}">${icons ? `<span class="wordmark" style="padding:4px 0 12px;text-align:center;font-size:16px">CO</span>` : `<span class="wordmark">CampusOS</span>`}
+  <a class="${on === "today" ? "on" : ""}" href="#today">${ICON("i-cal")}<span class="lbl">${T("nav.today")}</span></a>
+  <a class="${on === "assign" ? "on" : ""}" href="#assignments">${ICON("i-list")}<span class="lbl">${T("nav.assignments")}</span></a>
+  <a class="${on === "upd" ? "on" : ""}" href="#updates">${ICON("i-bell")}<span class="lbl">${T("nav.updates")}</span>${icons ? "" : `<span class="n">1</span>`}</a>
+  <div class="foot">${icons ? `<button class="ab-av" aria-label="Account" style="margin:0 auto">S</button>` : `<button class="ab-btn">${ICON("i-plus")}${T("report")}</button><span style="display:flex;justify-content:space-between;align-items:center">Siti Rahma <button class="ab-lang" style="text-decoration:underline">${T("lang")}</button></span>`}</div></nav>`;
+const dueList = (n) => DAY.due.slice(0, n).map(dueRow).join("");
+S.todayTablet = () => `<div class="scr"><div class="split" style="grid-template-columns:72px 400px 1fr">${rail("today", true)}
+  <div class="pane">${appbar(T("today.date"), T("today.sum"))}${nowBand(DAY.classes[1])}<div class="tt">${DAY.classes.map((c) => row(c)).join("")}</div></div>
+  <div class="pane"><div class="panehead"><h4>${T("side.changes")}</h4><span class="s">${T("upd.sub")}</span></div>${UPD.slice(0, 3).map(updItem).join("")}
+    <div class="panehead" style="border-top:1px solid var(--line);margin-top:8px"><h4>${T("side.due")}</h4><a class="tbtn" href="#assignments">${T("sec.all")}</a></div>${dueList(3)}</div></div></div>`;
+S.updTablet = () => `<div class="scr"><div class="split" style="grid-template-columns:72px 1fr 320px">${rail("upd", true)}
+  <div class="pane">${appbar(T("upd.title"), T("upd.sub"))}${UPD.map(updItem).join("")}</div>
+  <div class="pane"><div class="panehead"><h4>${T("tab.today")}</h4></div><div class="tt">${DAY.classes.map((c) => row(c)).join("")}</div></div></div></div>`;
+S.detailTablet = () => `<div class="scr"><div class="split" style="grid-template-columns:72px 340px 1fr">${rail("assign", true)}
+  <div class="pane">${appbar(T("assign.title"), "", { report: T("assign.add") })}<div class="tabs"><span class="on">${T("assign.todo")} <span class="fig">5</span></span><span>${T("assign.done")} <span class="fig">3</span></span></div>${assignList("TKE-205today")}</div>
+  <div class="pane">${detailBody()}</div></div></div>`;
+const HOUR = 52, START = 7;
+const yOf = (h) => (+h.slice(0, 2) + +h.slice(3) / 60 - START) * HOUR;
+const blk = (b) => `<div class="blk ${b.off ? "off" : b.past ? "past" : b.t}" style="top:${yOf(b.s) + 1}px;height:${yOf(b.e) - yOf(b.s) - 2}px">
+  <b>${b.n}</b><span class="fig">${b.s}–${b.e}</span> · ${b.off ? `<span class="why">${T("st.off")}</span>` : b.was ? `<span class="mk">${b.r}</span>` : b.r}</div>`;
+const weekGrid = () => { const days = ["wk.mon","wk.tue","wk.wed","wk.thu","wk.fri"], dates = [23,24,25,26,27], H = HOUR * 10;
+  return `<div class="week"><div class="hd" style="border-left:0"></div>${days.map((d, i) => `<div class="hd ${i === 2 ? "today" : ""}"><span class="fig">${dates[i]}</span>${T(d)}</div>`).join("")}
+  <div class="gut" style="height:${H}px">${Array.from({ length: 10 }, (_, i) => i ? `<span style="top:${i * HOUR}px">${String(START + i).padStart(2, "0")}:00</span>` : "").join("")}</div>
+  ${WEEK.map((list, i) => `<div class="col ${i === 2 ? "today" : ""}" style="height:${H}px">${list.map(blk).join("")}${i === 2 ? `<div class="nowline" style="top:${yOf("10:25")}px"></div>` : ""}</div>`).join("")}</div>`; };
+S.todayDesk = () => `<div class="scr"><div class="split" style="grid-template-columns:220px 1fr 340px">${rail("today")}
+  <div class="pane"><div class="panehead"><h4>${T("tab.week")}</h4><span class="s">${T("today.sum")}</span></div>${weekGrid()}</div>
+  <div class="pane">${nowBand(DAY.classes[1])}<div class="panehead"><h4>${T("side.changes")}</h4></div>${UPD.slice(0, 3).map(updItem).join("")}
+    <div class="panehead" style="border-top:1px solid var(--line);margin-top:8px"><h4>${T("side.due")}</h4><a class="tbtn" href="#assignments">${T("sec.all")}</a></div>${dueList(3)}</div></div></div>`;
+S.updDesk = () => `<div class="scr"><div class="split" style="grid-template-columns:220px minmax(0,1fr) 380px">${rail("upd")}
+  <div class="pane"><div class="panehead"><h4>${T("upd.title")}</h4><span class="s">${T("upd.sub")}</span></div><div style="max-width:720px">${UPD.map(updItem).join("")}</div></div>
+  <div class="pane"><div class="panehead"><h4>${T("tab.today")}</h4></div><div class="tt">${DAY.classes.map((c) => row(c)).join("")}</div></div></div></div>`;
+S.detailDesk = () => `<div class="scr"><div class="split" style="grid-template-columns:220px 400px minmax(0,1fr)">${rail("assign")}
+  <div class="pane"><div class="panehead"><h4>${T("assign.title")}</h4><button class="tbtn">${ICON("i-plus")}${T("assign.add")}</button></div><div class="tabs"><span class="on">${T("assign.todo")} <span class="fig">5</span></span><span>${T("assign.done")} <span class="fig">3</span></span></div>${assignList("TKE-205today")}</div>
+  <div class="pane"><div style="max-width:720px">${detailBody()}</div></div></div></div>`;
+
+/* ---------- plates ---------- */
+const P = (dev, render, tid, name, note) => ({ dev, render, tid, name, note });
+const GROUPS = [
+  { id:"today", h:"Today", p:"A real day at real density: timetable rows on a time gutter, durations, the free gap shown as a gap, the current class as a full-width band. Yellow highlight = changed, red = cancelled. Nothing else is coloured.",
+    plates:[ P("phone","todayPhone","CO-11 · CO-24","Phone","10:25 WIB. One moved room, one cancelled lab, a 90-minute gap."),
+             P("tablet","todayTablet","CO-11","Tablet","Two panes: today's timetable, and this week's changes with deadlines."),
+             P("desktop","todayDesk","CO-11","Desktop","Week timetable (block height = duration, red line = now) with the current class, changes and deadlines beside it.") ] },
+  { id:"updates", h:"Updates", p:"Every change in one plain list: what, which session, the old and new room, the rep's own words, and who posted it.",
+    plates:[ P("phone","updPhone","CO-21 · CO-22","Phone","Newest first; unread has a tinted row and the word New."), P("tablet","updTablet","CO-22","Tablet","Feed beside today's timetable."), P("desktop","updDesk","CO-22","Desktop","Feed at reading width, today beside it.") ] },
+  { id:"report", h:"Report a change (class reps)", p:"Opened from the one Report change button in the app bar (same place on every screen). Two kinds only: cancelled or room moved.",
+    plates:[ P("phone","reportPhone","CO-21 · CO-23","Phone sheet","Class and session pre-filled from Today; tap Room moved, type 305, send.") ] },
+  { id:"assignments", h:"Assignments", p:"Create and delete only. Countdown in the time gutter, the same rows as Today.",
+    plates:[ P("phone","assignPhone","CO-15 · CO-16","List · phone","Grouped by when it is due."), P("phone","detailPhone","CO-15 · CO-16","Detail · phone","Same blocks for every assignment. Delete is for the class's editors."),
+             P("phone","newPhone","CO-15 · CO-17","New assignment · phone","Due picked in one tap, read back in WIB."),
+             P("tablet","detailTablet","CO-16","Detail · tablet","List and detail side by side."), P("desktop","detailDesk","CO-16","Detail · desktop","List, detail at reading width.") ] },
+  { id:"start", h:"Sign in and onboarding", p:"Plain and short. No illustration, no tagline.",
+    plates:[ P("phone","login","CO-08 · CO-09","Login",""), P("phone","onbLang","CO-10","Onboarding 1",""), P("phone","onbClasses","CO-10","Onboarding 2","Sections listed with their meeting times."), P("phone","onbRemind","CO-10 · CO-26","Onboarding 3","Shows the actual notification before asking. On iPhone Safari this step shows the Home Screen steps instead; never skipped.") ] },
+  { id:"account", h:"Account, reminders, iPhone, push", p:"",
+    plates:[ P("phone","accountPhone","CO-09 · CO-10","Account sheet","Change classes, language, reminders, sign out. Opens from the initial in the app bar."),
+             P("phone","remindPhone","CO-26","Reminders off","A plain notice under the app bar for students who chose Not now."),
+             P("phone","iosPhone","CO-28","iPhone hint","Only in iPhone Safari when CampusOS isn't on the Home Screen."),
+             P("phone","pushPhone","CO-20 · CO-25","Push","The same three events as Today, as the phone shows them at 10:41.") ] },
+  { id:"landing", h:"Landing page", p:"One screen: name, one line, a real screenshot of Today, sign in, changelog link. The Developer uses an actual screenshot of the built Today, not this mock.",
+    plates:[ P("phone","landingPhone","Landing","Phone",""), P("desktop","landingDesk","Landing","Desktop","") ] },
+  { id:"changelog", h:"Changelog", p:"A reading page: one column at 65 characters, releases newest first.",
+    plates:[ P("phone","changelogPhone","Changelog","Phone",""), P("desktop","changelogDesk","Changelog","Desktop","") ] }
+];
+
+function build() {
+  const board = document.getElementById("board");
+  board.innerHTML = `
+    <p class="intro">Every plate shows the same day: <b>Wednesday 25 November 2026, 10:25 WIB</b>, seen by Siti Rahma (TKE, class rep of TKE-205). Struktur Data moved from Ruang 204 to 305 at 07:58; the 13:30 lab was cancelled at 09:47. Course names and the reps' notes stay as written (Indonesian). <b>All Indonesian interface text is a draft for Alfiz/Siam to proofread.</b></p>
+    <ul class="toc">${GROUPS.map((g) => `<li><a href="#${g.id}">${g.h}</a></li>`).join("")}</ul>
+    ${GROUPS.map((g) => `<section class="grp" id="${g.id}"><h2>${g.h}</h2><p>${g.p}</p><div class="plates">${g.plates.map((p) => `
+      <figure class="plate ${p.dev !== "phone" ? "wide-plate" : ""}"><figcaption><span class="tid">${p.tid}</span><b>${p.name}</b>${p.note}</figcaption>
+        <div class="fitbox"><div class="dev ${p.dev}" data-dev="${p.dev}" lang="${LANG}">${S[p.render]()}</div></div></figure>`).join("")}</div></section>`).join("")}`;
+  fit();
+}
+function fit() {
+  document.querySelectorAll(".fitbox").forEach((box) => {
+    const d = box.firstElementChild; d.style.zoom = 1;
+    const z = Math.min(1, box.clientWidth / d.offsetWidth);
+    d.style.zoom = z;
+  });
+}
+function setLang(l) { LANG = l; document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === l))); try { localStorage.setItem("v3-lang", l); } catch {} build(); }
+function setTheme(t) { if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t; document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === t))); try { localStorage.setItem("v3-theme", t); } catch {} }
+document.querySelectorAll("[data-lang-btn]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.langBtn)));
+document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+addEventListener("resize", fit);
+let l = "en", t = "system";
+try { l = localStorage.getItem("v3-lang") || "en"; t = localStorage.getItem("v3-theme") || "system"; } catch {}
+setTheme(["light", "dark"].includes(t) ? t : "system");
+setLang(l === "id" ? "id" : "en");
+document.fonts && document.fonts.ready.then(fit);
+})();
+</script>

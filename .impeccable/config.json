@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "components/ClassCard.tsx"
+        ],
+        "createdAt": "2026-11-24T17:47:21.725Z",
+        "reason": "Designer spec: docs/design/system.md \u00a74 ClassCard requires a 4px left border as the class-type marker (border-l-4 by ClassType)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,619 @@
+<title>CampusOS Design Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a review board. Toolbar on top, then labelled phone plates (390px) in a wrapping grid.
+   Phone tokens are copied 1:1 from docs/design/system.md §1; board-* tokens are only for the board chrome. */
+:root {
+  --background:#ffffff; --foreground:#0f172a; --surface:#f1f5f9; --muted:#475569; --line:#e2e8f0;
+  --line-strong:#64748b; --primary:#1d4ed8; --on-primary:#ffffff; --primary-soft:#eff6ff;
+  --danger:#b91c1c; --danger-soft:#fef2f2; --warn:#92400e; --warn-soft:#fffbeb; --ok:#166534; --ok-soft:#f0fdf4;
+  --board-bg:#e6ebf1; --board-fg:#0f172a; --board-muted:#475569; --board-card:#f8fafc; --frame:#0f172a;
+  --scrim:rgba(2,6,23,.45);
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --background:#020617; --foreground:#f1f5f9; --surface:#0f172a; --muted:#94a3b8; --line:#1e293b;
+  --line-strong:#64748b; --primary:#60a5fa; --on-primary:#020617; --primary-soft:#172554;
+  --danger:#fca5a5; --danger-soft:#450a0a; --warn:#fcd34d; --warn-soft:#451a03; --ok:#86efac; --ok-soft:#052e16;
+  --board-bg:#0b1120; --board-fg:#e2e8f0; --board-muted:#94a3b8; --board-card:#111a2e; --frame:#334155;
+  --scrim:rgba(0,0,0,.6); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --background:#020617; --foreground:#f1f5f9; --surface:#0f172a; --muted:#94a3b8; --line:#1e293b;
+  --line-strong:#64748b; --primary:#60a5fa; --on-primary:#020617; --primary-soft:#172554;
+  --danger:#fca5a5; --danger-soft:#450a0a; --warn:#fcd34d; --warn-soft:#451a03; --ok:#86efac; --ok-soft:#052e16;
+  --board-bg:#0b1120; --board-fg:#e2e8f0; --board-muted:#94a3b8; --board-card:#111a2e; --frame:#334155;
+  --scrim:rgba(0,0,0,.6); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--board-bg); color: var(--board-fg); font: 16px/1.5 var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Board chrome */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--board-bg);
+  padding-block: 16px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--board-bg); }
+.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.top .sub { margin: 0; color: var(--board-muted); font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; }
+.seg { display: inline-grid; grid-auto-flow: column; gap: 2px; padding: 3px; border-radius: 12px; background: var(--board-card); border: 1px solid var(--line); }
+.seg button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; background: none; color: var(--board-muted); cursor: pointer; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.seg .lbl { align-self: center; padding: 0 6px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--board-muted); }
+.intro { max-width: 72ch; color: var(--board-muted); font-size: 15px; margin: 20px 0 8px; }
+.intro b { color: var(--board-fg); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 8px; padding: 0; list-style: none; }
+.toc a { display: inline-flex; min-height: 32px; align-items: center; padding: 0 10px; border-radius: 999px; background: var(--board-card); color: var(--board-fg); text-decoration: none; font-size: 13px; border: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(390px, 100%), 1fr)); gap: 48px 40px; margin-top: 28px; justify-items: center; }
+.plate { margin: 0; width: min(390px, 100%); display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 140px; }
+.plate figcaption { min-height: 92px; }
+.tid { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--primary); }
+.plate h2 { margin: 2px 0 4px; font-size: 18px; font-weight: 650; text-wrap: balance; }
+.plate p.note { margin: 0; font-size: 14px; color: var(--board-muted); }
+.section-title { grid-column: 1 / -1; justify-self: stretch; margin: 24px 0 -16px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--board-muted); border-top: 1px solid var(--line); padding-top: 20px; }
+
+/* Phone frame */
+.phone { width: 100%; border: 8px solid var(--frame); border-radius: 44px; overflow: hidden; background: var(--background); color: var(--foreground); position: relative; }
+.scr { min-height: 760px; display: flex; flex-direction: column; padding: 24px 16px 0; font-size: 16px; line-height: 1.45; position: relative; }
+.scr.short { min-height: 0; padding-bottom: 20px; }
+.grow { flex: 1; }
+
+/* App components (system.md §4) */
+.hdr { display: flex; align-items: center; gap: 4px; padding: 8px 0 12px; }
+.hdr h3 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.02em; flex: 1; }
+.avatar { width: 44px; height: 44px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 600; display: grid; place-items: center; border: 0; }
+.langbtn { min-height: 44px; padding: 0 8px; background: none; border: 0; color: var(--primary); font-weight: 500; font-size: 15px; }
+.muted { color: var(--muted); }
+.sm { font-size: 14px; }
+.xs { font-size: 12px; }
+.b { font-weight: 600; }
+.strike { text-decoration: line-through; }
+.sech { font-size: 14px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 24px 0 10px; display: flex; align-items: center; justify-content: space-between; }
+.sech a { text-transform: none; letter-spacing: 0; color: var(--primary); font-weight: 500; font-size: 15px; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.segc { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface); width: fit-content; margin-top: 12px; }
+.segc span { min-height: 44px; display: grid; place-items: center; padding: 0 20px; border-radius: 9px; color: var(--muted); }
+.segc span.on { background: var(--background); color: var(--foreground); font-weight: 600; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 12px; }
+.time { width: 56px; flex-shrink: 0; padding-top: 16px; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.card { flex: 1; min-width: 0; border-radius: 12px; background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.card.now { box-shadow: 0 0 0 2px var(--primary); }
+.card.cancel { background: var(--danger-soft); }
+.row.past, .row.past .card, .row.past .muted { color: var(--muted); }
+.row.past .card { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.l1 { display: flex; align-items: flex-start; gap: 8px; }
+.l1 > :last-child.pill { margin-left: auto; }
+.ttl { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ttl2 { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.flag { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.flag.now { color: var(--primary); }
+.flag.next { color: var(--muted); }
+.typetag { display: inline-flex; align-items: center; gap: 5px; }
+.typetag i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.pill { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; flex-shrink: 0; }
+.pill svg { width: 12px; height: 12px; }
+.p-danger { background: var(--danger-soft); color: var(--danger); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-primary { background: var(--primary-soft); color: var(--primary); }
+.p-ok { background: var(--ok-soft); color: var(--ok); }
+.cancel .p-danger { background: var(--background); }
+.acard { display: block; border-radius: 12px; background: var(--surface); padding: 14px 16px; color: inherit; text-decoration: none; }
+.btn { min-height: 44px; width: 100%; border-radius: 12px; border: 0; background: var(--primary); color: var(--on-primary); font-weight: 600; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; }
+.btn2 { min-height: 44px; width: 100%; border-radius: 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--foreground); font-weight: 600; font-size: 16px; padding: 0 16px; }
+.btn.auto, .btn2.auto { width: auto; }
+.link { min-height: 44px; display: inline-flex; align-items: center; color: var(--primary); font-weight: 500; text-decoration: none; background: none; border: 0; padding: 0 8px; font-size: 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label, .lab { font-size: 14px; font-weight: 500; }
+.input { min-height: 44px; width: 100%; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--background); color: var(--foreground); padding: 10px 12px; font: inherit; font-size: 16px; }
+textarea.input { resize: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 44px; border-radius: 999px; border: 1px solid var(--line-strong); padding: 0 16px; background: transparent; color: var(--foreground); font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.chip.on { border: 2px solid var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.chip.big { min-height: 56px; flex: 1; justify-content: center; border-radius: 14px; padding: 0 8px; }
+.chip svg { width: 16px; height: 16px; }
+.banner { display: flex; align-items: flex-start; gap: 12px; border-radius: 12px; background: var(--primary-soft); padding: 12px; font-size: 14px; margin-top: 12px; }
+.banner .x { width: 44px; height: 44px; margin: -10px -8px -10px auto; flex-shrink: 0; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
+.banner svg.ic { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary); margin-top: 1px; }
+.sticky { margin: auto -16px 0; padding: 12px 16px 20px; background: var(--background); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.nav { margin: auto -16px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: 8px; background: var(--background); }
+.nav span { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; color: var(--muted); position: relative; }
+.nav span.on { color: var(--primary); font-weight: 600; }
+.nav svg { width: 24px; height: 24px; }
+.dot { position: absolute; top: 9px; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 999px; background: var(--danger); }
+.newtag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--primary); }
+.newtag i { width: 8px; height: 8px; border-radius: 999px; background: var(--primary); display: inline-block; }
+.check { color: var(--ok); font-weight: 700; }
+.radio { min-height: 56px; border-radius: 12px; border: 1px solid var(--line-strong); display: flex; align-items: center; gap: 12px; padding: 0 16px; }
+.radio.on { border: 2px solid var(--primary); background: var(--primary-soft); font-weight: 600; }
+.rdot { width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--line-strong); flex-shrink: 0; }
+.radio.on .rdot { border: 6px solid var(--primary); }
+.cbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--line-strong); flex-shrink: 0; display: grid; place-items: center; }
+.cbox.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.cbox svg { width: 14px; height: 14px; }
+.listbox { border-radius: 12px; background: var(--surface); overflow: hidden; }
+.listbox > div { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid var(--line); }
+.listbox > div:first-child { border-top: 0; }
+.back { width: 44px; height: 44px; margin-left: -10px; display: grid; place-items: center; border: 0; background: none; color: var(--foreground); }
+.back svg, .close svg { width: 22px; height: 22px; }
+.close { width: 44px; height: 44px; margin-left: -10px; display: grid; place-items: center; border: 0; background: none; color: var(--foreground); }
+.fab { position: absolute; right: 16px; bottom: 84px; min-height: 56px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 600; padding: 0 20px; border: 0; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 8px 20px rgba(2,6,23,.25); font-size: 16px; }
+.fab svg { width: 18px; height: 18px; }
+.duebox { border-radius: 12px; padding: 14px 16px; background: var(--warn-soft); color: var(--warn); margin-top: 16px; }
+.duebox .v { color: var(--foreground); font-weight: 600; font-size: 17px; }
+.linkrow { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 12px; background: var(--surface); color: var(--primary); font-size: 15px; word-break: break-all; }
+.linkrow svg { width: 18px; height: 18px; flex-shrink: 0; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--background); border-radius: 20px 20px 0 0; padding: 20px 20px 28px; box-shadow: 0 -10px 30px rgba(2,6,23,.3); }
+.sheet h4 { margin: 0; font-size: 20px; font-weight: 600; flex: 1; }
+.steps { margin: 16px 0 20px; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+.steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.glyph { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface); color: var(--primary); vertical-align: middle; margin-left: 4px; }
+.glyph svg { width: 18px; height: 18px; }
+.acrow { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); }
+
+/* Lock screen (fixed look, both themes) */
+.lock { min-height: 760px; background: linear-gradient(170deg, #1e3a8a 0%, #0f172a 60%, #020617 100%); color: #f8fafc; padding: 56px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+.lock .clock { text-align: center; font-size: 72px; font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+.lock .date { text-align: center; font-size: 17px; color: #cbd5e1; margin-bottom: 28px; }
+.notif { background: rgba(241,245,249,.94); color: #0f172a; border-radius: 18px; padding: 12px 14px; display: flex; gap: 12px; }
+.notif .appi { width: 38px; height: 38px; border-radius: 9px; background: #1d4ed8; flex-shrink: 0; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 15px; }
+.notif .meta { display: flex; justify-content: space-between; font-size: 12px; color: #475569; }
+.notif .t { font-weight: 600; font-size: 15px; }
+.notif .bd { font-size: 15px; }
+.copytable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.copytable th, .copytable td { text-align: left; vertical-align: top; padding: 8px 8px 8px 0; border-top: 1px solid var(--line); }
+.copytable th { font-weight: 600; color: var(--board-muted); width: 34%; }
+.tablebox { background: var(--board-card); border-radius: 14px; padding: 12px 16px; border: 1px solid var(--line); overflow-x: auto; }
+
+/* Option A (current build): thick type rail */
+.rail-lecture { border-left: 4px solid var(--primary); }
+.rail-lab { border-left: 4px solid var(--ok); }
+.optlabel { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--board-muted); margin: 4px 0 6px; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+@media (max-width: 420px) { .phone { border-width: 6px; border-radius: 36px; } .scr { padding-inline: 12px; } .sticky, .nav { margin-inline: -12px; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+    <symbol id="i-mega" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16ZM10 20a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v9h14v-9h-1"/></symbol>
+    <symbol id="i-addsq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div>
+    <h1>CampusOS design board</h1>
+    <p class="sub">For Siam's approval · specs: docs/design/system.md, screens.md · 25 Nov 2026</p>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Theme">
+      <span class="lbl" aria-hidden="true">Theme</span>
+      <button type="button" data-theme-btn="system" aria-pressed="true">System</button>
+      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="seg" role="group" aria-label="Language of the mockups">
+      <span class="lbl" aria-hidden="true">Copy</span>
+      <button type="button" data-lang-btn="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang-btn="id" aria-pressed="false">ID</button>
+    </div>
+  </div>
+</header>
+
+<p class="intro">Each phone is one screen at 390px, using the real tokens, font and components. Reply to the Lead with <b>"approve CO-xx"</b> or a comment naming the screen. Sample data: a student (Siti, class rep of TKE-205) on <b>Wednesday 25 November, 10:25 WIB</b>. Course names stay in Indonesian in both languages, as in the timetable. One decision is open: <a href="#class-card" style="color:var(--primary)">class card style</a>.</p>
+<ul class="toc">
+  <li><a href="#login">Login</a></li><li><a href="#onb-lang">Onboarding</a></li><li><a href="#today">Today</a></li>
+  <li><a href="#class-card">Class card A/B</a></li><li><a href="#assignments">Assignments</a></li><li><a href="#detail">Detail</a></li>
+  <li><a href="#editor">Editor</a></li><li><a href="#updates">Updates</a></li><li><a href="#post">Post update</a></li>
+  <li><a href="#reminders">Reminders prompt</a></li><li><a href="#account">Account</a></li><li><a href="#install">iPhone hint</a></li><li><a href="#push">Push</a></li>
+</ul>
+
+<main class="grid">
+
+<h2 class="section-title">Day 2 · sign-in, onboarding, Today (already built: see differences in the Lead report)</h2>
+
+<!-- LOGIN -->
+<figure class="plate" id="login">
+  <figcaption><span class="tid">CO-08 · CO-09</span><h2>Login</h2><p class="note">Google only. Button in thumb reach; language switch top right.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;justify-content:flex-end"><button class="langbtn" data-t="lang.switch">Bahasa Indonesia</button></div>
+    <div class="grow" style="display:flex;flex-direction:column;justify-content:center;text-align:center;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:26px;font-weight:600;letter-spacing:-.02em">
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--primary)"/><path d="M8 10h12M8 14h8M8 18h10" stroke="var(--on-primary)" stroke-width="2.2" stroke-linecap="round"/></svg>
+        CampusOS
+      </div>
+      <p class="muted" style="margin:0 auto;max-width:28ch" data-t="login.tagline">Your classes, assignments and class changes in one place.</p>
+    </div>
+    <div style="padding-bottom:56px;display:flex;flex-direction:column;gap:12px">
+      <button class="btn"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="var(--on-primary)"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="700" fill="var(--primary)" font-family="Geist, sans-serif">G</text></svg><span data-t="login.google">Continue with Google</span></button>
+      <p class="sm muted" style="margin:0;text-align:center" data-t="login.hint">Use your student Google account.</p>
+    </div>
+  </div></div>
+</figure>
+
+<!-- ONBOARDING 1 -->
+<figure class="plate" id="onb-lang">
+  <figcaption><span class="tid">CO-08 · CO-10</span><h2>Onboarding 1 · Language</h2><p class="note">Title in both languages on this step only. Default follows the phone's language.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <p class="sm muted" style="margin:10px 0 0" data-t="onb.step" data-n="1">Step 1 of 3</p>
+    <h3 style="margin:6px 0 0;font-size:24px;font-weight:600;letter-spacing:-.02em">Choose your language<span class="muted" style="display:block" lang="id">Pilih bahasa</span></h3>
+    <div class="stack" style="margin-top:24px">
+      <div class="radio on"><span class="rdot"></span>English</div>
+      <div class="radio"><span class="rdot"></span><span lang="id">Bahasa Indonesia</span></div>
+    </div>
+    <div class="sticky"><button class="btn" data-t="onb.continue">Continue</button></div>
+  </div></div>
+</figure>
+
+<!-- ONBOARDING 2 -->
+<figure class="plate" id="onb-classes">
+  <figcaption><span class="tid">CO-08 · CO-10</span><h2>Onboarding 2 · Pick classes</h2><p class="note">Grouped by course, search by code or name. Button shows the count and is off at 0.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;align-items:center"><button class="back" aria-label="Back"><svg><use href="#i-back"/></svg></button><span class="sm muted" data-t="onb.step" data-n="2">Step 2 of 3</span></div>
+    <h3 style="margin:2px 0 0;font-size:24px;font-weight:600;letter-spacing:-.02em" data-t="onb.classesTitle">Pick your classes</h3>
+    <p class="muted" style="margin:4px 0 0" data-t="onb.classesBody">Choose every class and section you attend this semester.</p>
+    <div style="position:relative;margin-top:16px"><svg style="position:absolute;left:12px;top:12px;width:20px;height:20px;color:var(--muted)" aria-hidden="true"><use href="#i-search"/></svg><input class="input" style="padding-left:40px" data-tp="onb.search" placeholder="Search code or name" aria-label="Search"></div>
+    <p class="b" style="margin:20px 0 8px">TKE-201 Sistem Digital</p>
+    <div class="listbox">
+      <div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.mon0800">Mon 08:00</span></span></div>
+      <div><span class="cbox"></span><span><span data-t="x.secB">Sec B</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.tue1000">Tue 10:00</span></span></div>
+    </div>
+    <p class="b" style="margin:20px 0 8px">TKE-201P Praktikum Sistem Digital</p>
+    <div class="listbox">
+      <div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lab">Lab</span> · <span data-t="x.wed1330">Wed 13:30</span></span></div>
+    </div>
+    <p class="b" style="margin:20px 0 8px">TKE-205 Struktur Data</p>
+    <div class="listbox">
+      <div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.wed1000">Wed 10:00</span></span></div>
+    </div>
+    <div class="sticky" style="margin-top:24px"><button class="btn" data-t="onb.continueCount" data-n="3">Continue (3 selected)</button></div>
+  </div></div>
+</figure>
+
+<!-- ONBOARDING 3 -->
+<figure class="plate" id="onb-remind">
+  <figcaption><span class="tid">CO-08 · CO-26</span><h2>Onboarding 3 · Reminders</h2><p class="note">Our own explanation first; the browser dialog opens only after "Turn on". On iPhone in Safari this step shows the Home Screen steps instead (see iPhone hint).</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;align-items:center"><button class="back" aria-label="Back"><svg><use href="#i-back"/></svg></button><span class="sm muted" data-t="onb.step" data-n="3">Step 3 of 3</span></div>
+    <h3 style="margin:8px 0 0;font-size:24px;font-weight:600;letter-spacing:-.02em" data-t="onb.remindTitle">Get reminders</h3>
+    <p class="muted" style="margin:6px 0 0" data-t="onb.remindBody">We'll remind you 30 minutes before class, before deadlines, and when a class is cancelled or moved.</p>
+    <div class="sticky"><button class="btn" data-t="onb.remindOn">Turn on reminders</button><button class="btn2" data-t="onb.notNow">Not now</button></div>
+  </div></div>
+</figure>
+
+<!-- TODAY -->
+<figure class="plate" id="today">
+  <figcaption><span class="tid">CO-08 · CO-11 · CO-24</span><h2>Today</h2><p class="note">Past class faded, class in progress ringed "Now", next one labelled "Next". Room change and cancellation shown on the card, never hidden.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="hdr"><h3 data-t="nav.today">Today</h3><button class="avatar" aria-label="Account">S</button><button class="langbtn" data-t="lang.switch">Bahasa Indonesia</button></div>
+    <p class="muted" style="margin:-8px 0 0" data-t="x.todayDate">Wednesday, 25 November</p>
+    <div class="segc"><span class="on" data-t="nav.today">Today</span><span data-t="today.tomorrow">Tomorrow</span></div>
+    <p class="sech" data-t="today.classes">Classes</p>
+    <div class="stack">
+      <div class="row past"><div class="time">08:00<br><span class="muted">09:40</span></div>
+        <article class="card"><div class="l1"><span class="sm muted typetag"><i style="background:var(--primary)"></i>TKE-201 · <span data-t="type.lecture">Lecture</span></span></div>
+          <div class="ttl">Sistem Digital</div><div class="sm">Ruang 301</div><div class="sm muted">Dr. Ir. Rahmat Hidayat, M.T. · <span data-t="x.secA">Sec A</span></div></article></div>
+      <div class="row"><div class="time">10:00<br><span class="muted">11:40</span></div>
+        <article class="card now"><span class="flag now" data-t="today.now">Now</span>
+          <div class="l1"><span class="sm muted typetag"><i style="background:var(--primary)"></i>TKE-205 · <span data-t="type.lecture">Lecture</span></span><span class="pill p-warn"><svg aria-hidden="true"><use href="#i-arrow"/></svg><span data-t="badge.room_change">Room moved</span></span></div>
+          <div class="ttl">Struktur Data</div><div class="sm"><span class="muted strike">Ruang 204</span> <span class="b">Ruang 305</span></div><div class="sm muted">Nurul Fadhilah, S.T., M.Sc. · <span data-t="x.secA">Sec A</span></div>
+          <div class="sm" style="margin-top:4px">Projector broken in 204.</div></article></div>
+      <div class="row"><div class="time">13:30<br><span class="muted">16:00</span></div>
+        <article class="card cancel"><div class="l1"><span class="sm muted typetag"><i style="background:var(--ok)"></i>TKE-201P · <span data-t="type.lab">Lab</span></span><span class="pill p-danger"><svg aria-hidden="true"><use href="#i-x"/></svg><span data-t="badge.absent">Cancelled</span></span></div>
+          <div class="ttl strike">Praktikum Sistem Digital</div><div class="sm">Asisten lab ujian, praktikum diganti minggu depan.</div><div class="sm muted">Lab Elektronika · <span data-t="x.secA">Sec A</span></div></article></div>
+      <div class="row"><div class="time">16:00<br><span class="muted">17:00</span></div>
+        <article class="card"><span class="flag next" data-t="today.next">Next</span>
+          <div class="l1"><span class="sm muted typetag"><i style="background:var(--line-strong)"></i>ADV · <span data-t="type.advising">Advising</span></span></div>
+          <div class="ttl">Bimbingan Akademik</div><div class="sm">Ruang Dosen 2</div><div class="sm muted">Dr. Zulfikar Amin, M.Eng. · <span data-t="x.secA">Sec A</span></div></article></div>
+    </div>
+    <p class="sech"><span data-t="today.dueSoon">Due soon</span><a href="#assignments"><span data-t="today.seeAll">See all</span>&nbsp;→</a></p>
+    <div class="stack" style="margin-bottom:24px">
+      <a class="acard" href="#detail"><div class="l1"><span class="sm muted">TKE-201</span><span class="pill p-danger" data-t="due.overdue">Overdue</span></div><div class="ttl2">Kuis 2: perbaikan jawaban</div><div class="sm muted" data-t="x.due1">Tue 24 Nov, 23:59</div></a>
+      <a class="acard" href="#detail"><div class="l1"><span class="sm muted">TKE-205</span><span class="pill p-warn" data-t="due.hours" data-n="13">Due in 13h</span></div><div class="ttl2">Tugas 3: Implementasi Linked List</div><div class="sm muted" data-t="x.due2">Wed 25 Nov, 23:59</div></a>
+    </div>
+    <nav class="nav"><span class="on"><svg aria-hidden="true"><use href="#i-cal"/></svg><span data-t="nav.today">Today</span></span><span><svg aria-hidden="true"><use href="#i-list"/></svg><span data-t="nav.assignments">Assignments</span></span><span><svg aria-hidden="true"><use href="#i-mega"/></svg><span data-t="nav.updates">Updates</span><i class="dot" aria-hidden="true"></i></span></nav>
+  </div></div>
+</figure>
+
+<!-- CLASS CARD A/B -->
+<figure class="plate" id="class-card">
+  <figcaption><span class="tid">DECISION · CO-11</span><h2>Class card: A (built) or B (proposed)</h2><p class="note">A uses a thick coloured left rail for the class type, a generic pattern the design check flagged. B, used on this board, says the type with a small square beside the word. Same information, quieter card. Recommendation: B.</p></figcaption>
+  <div class="phone"><div class="scr short">
+    <p class="optlabel">A · current build</p>
+    <div class="row"><div class="time">10:00<br><span class="muted">11:40</span></div>
+      <article class="card rail-lecture"><div class="l1"><span class="sm muted">TKE-205 · <span data-t="type.lecture">Lecture</span></span></div><div class="ttl">Struktur Data</div><div class="sm">Ruang 204</div><div class="sm muted">Nurul Fadhilah, S.T., M.Sc.</div></article></div>
+    <div class="row" style="margin-top:12px"><div class="time">13:30<br><span class="muted">16:00</span></div>
+      <article class="card rail-lab"><div class="l1"><span class="sm muted">TKE-201P · <span data-t="type.lab">Lab</span></span></div><div class="ttl">Praktikum Sistem Digital</div><div class="sm">Lab Elektronika</div><div class="sm muted">Fajar Maulana</div></article></div>
+    <p class="optlabel" style="margin-top:28px">B · proposed</p>
+    <div class="row"><div class="time">10:00<br><span class="muted">11:40</span></div>
+      <article class="card"><div class="l1"><span class="sm muted typetag"><i style="background:var(--primary)"></i>TKE-205 · <span data-t="type.lecture">Lecture</span></span></div><div class="ttl">Struktur Data</div><div class="sm">Ruang 204</div><div class="sm muted">Nurul Fadhilah, S.T., M.Sc.</div></article></div>
+    <div class="row" style="margin-top:12px"><div class="time">13:30<br><span class="muted">16:00</span></div>
+      <article class="card"><div class="l1"><span class="sm muted typetag"><i style="background:var(--ok)"></i>TKE-201P · <span data-t="type.lab">Lab</span></span></div><div class="ttl">Praktikum Sistem Digital</div><div class="sm">Lab Elektronika</div><div class="sm muted">Fajar Maulana</div></article></div>
+  </div></div>
+</figure>
+
+<h2 class="section-title">Day 3 · assignments</h2>
+
+<!-- ASSIGNMENTS LIST -->
+<figure class="plate" id="assignments">
+  <figcaption><span class="tid">CO-15 · CO-16</span><h2>Assignments list</h2><p class="note">Grouped Overdue / Today / This week / Later. "Done" is kept on this phone only. "+ Add" appears only for class reps, lab assistants and lecturers.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="hdr"><h3 data-t="nav.assignments">Assignments</h3><button class="avatar" aria-label="Account">S</button><button class="langbtn" data-t="lang.switch">Bahasa Indonesia</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:-4px"><div class="segc" style="margin:0"><span class="on" data-t="assignments.todo">To do</span><span data-t="assignments.done">Done</span></div>
+      <button class="link b"><svg width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>&nbsp;<span data-t="assignments.add">Add</span></button></div>
+    <p class="sech" data-t="assignments.overdue">Overdue</p>
+    <a class="acard" href="#detail"><div class="l1"><span class="sm muted">TKE-201</span><span class="pill p-danger" data-t="due.overdue">Overdue</span></div><div class="ttl2">Kuis 2: perbaikan jawaban</div><div class="sm muted" data-t="x.due1">Tue 24 Nov, 23:59</div></a>
+    <p class="sech" data-t="assignments.today">Today</p>
+    <a class="acard" href="#detail"><div class="l1"><span class="sm muted">TKE-205</span><span class="pill p-warn" data-t="due.hours" data-n="13">Due in 13h</span></div><div class="ttl2">Tugas 3: Implementasi Linked List</div><div class="sm muted" data-t="x.due2">Wed 25 Nov, 23:59</div></a>
+    <p class="sech" data-t="assignments.thisWeek">This week</p>
+    <a class="acard" href="#detail"><div class="l1"><span class="sm muted">TKE-201P</span><span class="pill p-primary" data-t="due.days" data-n="2">2 days</span></div><div class="ttl2">Laporan Praktikum Modul 4: Flip-flop</div><div class="sm muted" data-t="x.due3">Fri 27 Nov, 16:00</div></a>
+    <p class="sech" data-t="assignments.later">Later</p>
+    <a class="acard" href="#detail" style="margin-bottom:24px"><div class="l1"><span class="sm muted">TKE-205</span></div><div class="ttl2">Proyek akhir: proposal kelompok</div><div class="sm muted" data-t="x.due4">Mon 8 Dec, 23:59</div></a>
+    <nav class="nav"><span><svg aria-hidden="true"><use href="#i-cal"/></svg><span data-t="nav.today">Today</span></span><span class="on"><svg aria-hidden="true"><use href="#i-list"/></svg><span data-t="nav.assignments">Assignments</span></span><span><svg aria-hidden="true"><use href="#i-mega"/></svg><span data-t="nav.updates">Updates</span><i class="dot" aria-hidden="true"></i></span></nav>
+  </div></div>
+</figure>
+
+<!-- DETAIL -->
+<figure class="plate" id="detail">
+  <figcaption><span class="tid">CO-15 · CO-16</span><h2>Assignment detail</h2><p class="note">Every assignment shows the same blocks in the same order: course, title, due, instructions, links, poster. "Edit" only for this class's editors.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;justify-content:space-between;align-items:center"><button class="link" style="margin-left:-8px"><svg width="20" height="20" aria-hidden="true"><use href="#i-back"/></svg>&nbsp;<span data-t="common.back">Back</span></button>
+      <button class="link"><svg width="18" height="18" aria-hidden="true"><use href="#i-edit"/></svg>&nbsp;<span data-t="assignments.edit">Edit</span></button></div>
+    <p class="sm muted" style="margin:8px 0 0">TKE-205 · Struktur Data</p>
+    <h3 style="margin:2px 0 0;font-size:24px;font-weight:600;letter-spacing:-.02em;text-wrap:balance">Tugas 3: Implementasi Linked List</h3>
+    <div class="duebox"><div class="xs b" style="letter-spacing:.06em;text-transform:uppercase" data-t="assignments.due">Due</div><div class="v" data-t="x.dueLong">Wednesday 25 November, 23:59 WIB</div><div class="sm" data-t="x.in13">in 13 hours</div></div>
+    <p class="sech" data-t="assignments.instructions">Instructions</p>
+    <p style="margin:0">Implement a singly linked list in C with insert, delete and search. Include a short report (max 2 pages) with the time complexity of each operation. Submit as one ZIP named NIM_Nama_Tugas3.</p>
+    <p class="sech" data-t="assignments.links">Links</p>
+    <div class="stack"><div class="linkrow"><svg aria-hidden="true"><use href="#i-link"/></svg>elearning.usk.ac.id/mod/assign/…</div><div class="linkrow"><svg aria-hidden="true"><use href="#i-link"/></svg>drive.google.com/file/d/…/view</div></div>
+    <p class="sm muted" style="margin:20px 0 16px"><span data-t="assignments.postedByShort">Posted by</span> Siti Rahma (<span data-t="role.classrep">class rep</span>)</p>
+    <div style="margin-bottom:24px"><button class="btn2"><svg width="18" height="18" aria-hidden="true" style="vertical-align:-3px"><use href="#i-check"/></svg> <span data-t="assignments.markDone">Mark as done</span></button></div>
+    <nav class="nav"><span><svg aria-hidden="true"><use href="#i-cal"/></svg><span data-t="nav.today">Today</span></span><span class="on"><svg aria-hidden="true"><use href="#i-list"/></svg><span data-t="nav.assignments">Assignments</span></span><span><svg aria-hidden="true"><use href="#i-mega"/></svg><span data-t="nav.updates">Updates</span></span></nav>
+  </div></div>
+</figure>
+
+<!-- EDITOR -->
+<figure class="plate" id="editor">
+  <figcaption><span class="tid">CO-15 · CO-17</span><h2>Assignment editor</h2><p class="note">One format for every class. Quick due buttons, then a WIB read-back so students abroad see the real time. About 15 seconds for a rep.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;align-items:center;gap:6px"><button class="close" aria-label="Close"><svg><use href="#i-x"/></svg></button><span class="b" style="font-size:18px" data-t="editor.newTitle">New assignment</span></div>
+    <p class="sech" style="margin-top:16px" data-t="editor.class">Class</p>
+    <div class="chips"><span class="chip on">TKE-205 · <span data-t="x.secA">Sec A</span></span><span class="chip">TKE-201P · <span data-t="x.secA">Sec A</span></span></div>
+    <div class="field" style="margin-top:20px"><label for="ed-title" data-t="editor.title">Title</label><input id="ed-title" class="input" value="Tugas 4: Stack dan Queue"></div>
+    <p class="sech" data-t="editor.due">Due (WIB)</p>
+    <div class="chips"><span class="chip on" data-t="editor.nextClass">Next class</span><span class="chip" data-t="editor.inWeek">In 1 week</span><span class="chip" data-t="editor.pickDate">Pick date</span></div>
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:8px;margin-top:10px"><input class="input" aria-label="Date" value="27/11/2026"><input class="input" aria-label="Time" value="10:00"></div>
+    <p class="sm muted" style="margin:6px 0 0" data-t="x.readback">Friday 27 November, 10:00 WIB</p>
+    <div class="field" style="margin-top:20px"><label for="ed-ins" data-t="editor.instructions">Instructions (optional)</label><textarea id="ed-ins" class="input" rows="3">Implement stack and queue using the linked list from Tugas 3. Print every step.</textarea></div>
+    <div class="field" style="margin-top:20px"><span class="lab" data-t="editor.links">Links (optional)</span>
+      <div style="display:flex;gap:6px"><input class="input" aria-label="Link 1" value="https://elearning.usk.ac.id/mod/assign/view.php?id=4182"><button class="close" style="margin:0" aria-label="Remove link"><svg><use href="#i-x"/></svg></button></div>
+      <button class="link" style="align-self:flex-start;margin-left:-8px"><svg width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>&nbsp;<span data-t="editor.addLink">Add link</span></button></div>
+    <div class="sticky"><button class="btn" data-t="editor.post">Post assignment</button></div>
+  </div></div>
+</figure>
+
+<h2 class="section-title">Day 4 · class updates</h2>
+
+<!-- UPDATES -->
+<figure class="plate" id="updates">
+  <figcaption><span class="tid">CO-21 · CO-22</span><h2>Updates feed</h2><p class="note">Newest first. Unread items carry a "New" dot (replaces the left rail in the spec). Every post shows who sent it and a verified tick. "+ Post update" only for posters.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="hdr"><h3 data-t="nav.updates">Updates</h3><button class="avatar" aria-label="Account">S</button><button class="langbtn" data-t="lang.switch">Bahasa Indonesia</button></div>
+    <p class="sm muted" style="margin:-6px 0 16px" data-t="updates.trust">Only verified class reps, lab assistants and lecturers can post.</p>
+    <div class="stack">
+      <article class="card"><div class="l1"><span class="pill p-danger"><svg aria-hidden="true"><use href="#i-x"/></svg><span data-t="badge.absent">Cancelled</span></span><span class="newtag"><i></i><span data-t="nav.newUpdates">New</span></span><span class="sm muted" style="margin-left:auto" data-t="x.ago1">1h ago</span></div>
+        <div class="b" style="margin-top:6px">TKE-201P Praktikum Sistem Digital · <span data-t="x.secA">Sec A</span></div>
+        <div class="sm"><span data-t="date.today">Today</span>, 13:30</div>
+        <div class="sm" style="margin-top:2px">Asisten lab ujian, praktikum diganti minggu depan.</div>
+        <div class="sm muted" style="margin-top:4px">Fajar Maulana · <span data-t="role.labassistant">lab assistant</span> <span class="check" aria-label="verified">✓</span></div></article>
+      <article class="card"><div class="l1"><span class="pill p-warn"><svg aria-hidden="true"><use href="#i-arrow"/></svg><span data-t="badge.room_change">Room moved</span></span><span class="newtag"><i></i><span data-t="nav.newUpdates">New</span></span><span class="sm muted" style="margin-left:auto" data-t="x.ago2">2h ago</span></div>
+        <div class="b" style="margin-top:6px">TKE-205 Struktur Data · <span data-t="x.secA">Sec A</span></div>
+        <div class="sm"><span data-t="date.today">Today</span>, 10:00 → <span class="b">Ruang 305</span></div>
+        <div class="sm" style="margin-top:2px">Projector broken in 204.</div>
+        <div class="sm muted" style="margin-top:4px">Siti Rahma · <span data-t="role.classrep">class rep</span> <span class="check" aria-label="verified">✓</span></div></article>
+      <article class="card"><div class="l1"><span class="pill p-warn"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-t="badge.reschedule">New time</span></span><span class="sm muted" style="margin-left:auto" data-t="x.ago3">yesterday</span></div>
+        <div class="b" style="margin-top:6px">TKE-201 Sistem Digital · <span data-t="x.secA">Sec A</span></div>
+        <div class="sm"><span data-t="x.fri28">Fri 28 Nov</span>, 08:00 → <span class="b">10:00</span></div>
+        <div class="sm" style="margin-top:2px">Rapat jurusan pagi, kuliah mundur 2 jam.</div>
+        <div class="sm muted" style="margin-top:4px">Dr. Ir. Rahmat Hidayat · <span data-t="role.lecturer">lecturer</span> <span class="check" aria-label="verified">✓</span></div></article>
+    </div>
+    <div style="height:96px"></div>
+    <button class="fab"><svg aria-hidden="true"><use href="#i-plus"/></svg><span data-t="updates.post">Post update</span></button>
+    <nav class="nav"><span><svg aria-hidden="true"><use href="#i-cal"/></svg><span data-t="nav.today">Today</span></span><span><svg aria-hidden="true"><use href="#i-list"/></svg><span data-t="nav.assignments">Assignments</span></span><span class="on"><svg aria-hidden="true"><use href="#i-mega"/></svg><span data-t="nav.updates">Updates</span></span></nav>
+  </div></div>
+</figure>
+
+<!-- POST -->
+<figure class="plate" id="post">
+  <figcaption><span class="tid">CO-21 · CO-23</span><h2>Post update (class reps)</h2><p class="note">Under 30 seconds: class and session pre-filled, tap what changed, type the room, post. Only the field for the chosen kind appears.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div style="display:flex;align-items:center;gap:6px"><button class="close" aria-label="Close"><svg><use href="#i-x"/></svg></button><span class="b" style="font-size:18px" data-t="updates.formTitle">Post class update</span></div>
+    <p class="sech" style="margin-top:16px" data-t="updates.class">Class</p>
+    <div class="chips"><span class="chip on">TKE-205 · <span data-t="x.secA">Sec A</span></span><span class="chip">TKE-201P · <span data-t="x.secA">Sec A</span></span></div>
+    <p class="sech" data-t="updates.whatChanged">What changed?</p>
+    <div class="chips" style="flex-wrap:nowrap"><span class="chip big"><svg aria-hidden="true"><use href="#i-x"/></svg><span data-t="updates.kindAbsent">Cancelled</span></span><span class="chip big on"><svg aria-hidden="true"><use href="#i-arrow"/></svg><span data-t="updates.kindRoom">Room</span></span><span class="chip big"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-t="updates.kindTime">Time</span></span></div>
+    <p class="sech" data-t="updates.session">Which session?</p>
+    <div class="chips"><span class="chip on"><span data-t="date.today">Today</span> 10:00</span><span class="chip"><span data-t="x.fri27">Fri 27 Nov</span> 10:00</span><span class="chip" data-t="updates.otherDate">Other date</span></div>
+    <div class="field" style="margin-top:20px"><label for="po-room" data-t="updates.newRoom">New room</label><input id="po-room" class="input" value="Ruang 305"></div>
+    <div class="field" style="margin-top:16px"><label for="po-note" data-t="updates.note">Note (optional)</label><textarea id="po-note" class="input" rows="2">Projector broken in 204.</textarea></div>
+    <div class="sticky"><button class="btn" data-t="updates.submitCount" data-n="38">Post and notify 38 students</button></div>
+  </div></div>
+</figure>
+
+<h2 class="section-title">Day 4–5 · reminders, account, install</h2>
+
+<!-- REMINDERS PROMPT -->
+<figure class="plate" id="reminders">
+  <figcaption><span class="tid">CO-26</span><h2>Reminders prompt on Today</h2><p class="note">For students who chose "Not now": one banner, from the next day, at most every 7 days. If they block notifications in the browser, a one-time warning links to Account.</p></figcaption>
+  <div class="phone"><div class="scr short">
+    <div class="hdr"><h3 data-t="nav.today">Today</h3><button class="avatar" aria-label="Account">S</button><button class="langbtn" data-t="lang.switch">Bahasa Indonesia</button></div>
+    <p class="muted" style="margin:-8px 0 0" data-t="x.todayDate">Wednesday, 25 November</p>
+    <p class="optlabel" style="margin-top:16px">Not asked yet</p>
+    <div class="banner" style="margin-top:0"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg>
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span data-t="notif.banner">Get a reminder 30 min before class and when it's moved.</span><button class="btn auto" data-t="notif.turnOn">Turn on reminders</button></div>
+      <button class="x" aria-label="Dismiss"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>
+    <p class="optlabel" style="margin-top:20px">Blocked in the browser (shown once)</p>
+    <div class="banner" style="margin-top:0;background:var(--warn-soft)"><svg class="ic" style="color:var(--warn)" aria-hidden="true"><use href="#i-info"/></svg>
+      <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start"><span data-t="notif.deniedBanner">Reminders are off, so you won't hear about cancelled or moved classes.</span><button class="link" style="padding:0;color:var(--warn);text-decoration:underline" data-t="notif.howLink">How to turn on</button></div>
+      <button class="x" aria-label="Dismiss"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>
+  </div></div>
+</figure>
+
+<!-- ACCOUNT -->
+<figure class="plate" id="account">
+  <figcaption><span class="tid">CO-09 · CO-10 · CO-26</span><h2>Account sheet</h2><p class="note">Opens from the initial in the header. Change classes, language, reminder status and how to fix it, sign out.</p></figcaption>
+  <div class="phone"><div class="scr" style="min-height:700px">
+    <div class="hdr" style="opacity:.5"><h3 data-t="nav.today">Today</h3><span class="avatar">S</span></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div style="display:flex;align-items:center"><h4 data-t="account.title">Account</h4><button class="close" style="margin:0 -10px 0 0" aria-label="Close"><svg><use href="#i-x"/></svg></button></div>
+      <p class="b" style="margin:8px 0 0">Siti Rahma</p><p class="sm muted" style="margin:0 0 12px">siti.rahma@mhs.usk.ac.id</p>
+      <div class="acrow"><span data-t="account.classes">Classes</span><span class="muted"><span data-t="account.classCount" data-n="4">4 classes</span> →</span></div>
+      <div class="acrow" style="flex-wrap:wrap;padding-block:6px"><span data-t="account.language">Language</span><span class="chips"><span class="chip on" style="min-height:40px">English</span><span class="chip" style="min-height:40px" lang="id">Indonesia</span></span></div>
+      <div class="acrow" style="flex-direction:column;align-items:stretch;padding-block:12px;gap:6px"><div style="display:flex;justify-content:space-between"><span data-t="account.reminders">Reminders</span><span class="pill p-danger" data-t="notif.blocked">Blocked in settings</span></div>
+        <p class="sm muted" style="margin:0" data-t="notif.howIos">Open iPhone Settings → Notifications → CampusOS → turn on Allow Notifications.</p></div>
+      <div style="border-top:1px solid var(--line);padding-top:16px"><button class="btn2" style="color:var(--danger)" data-t="account.signOut">Sign out</button></div>
+    </div>
+  </div></div>
+</figure>
+
+<!-- INSTALL -->
+<figure class="plate" id="install">
+  <figcaption><span class="tid">CO-28</span><h2>iPhone "Add to Home Screen" hint</h2><p class="note">Only on iPhone Safari when not installed. Push needs the app on the Home Screen (iOS 16.4+). Banner on Today, steps in a sheet.</p></figcaption>
+  <div class="phone"><div class="scr" style="min-height:700px">
+    <div class="hdr"><h3 data-t="nav.today">Today</h3><span class="avatar">S</span></div>
+    <div class="banner"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><span data-t="install.banner">Add CampusOS to your Home Screen to get class reminders.</span> <button class="link" style="padding:0;min-height:0;font-size:14px;font-weight:600" data-t="install.how">How?</button></div><button class="x" aria-label="Dismiss"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div style="display:flex;align-items:center"><h4 data-t="install.title">Add to Home Screen</h4><button class="close" style="margin:0 -10px 0 0" aria-label="Close"><svg><use href="#i-x"/></svg></button></div>
+      <ol class="steps">
+        <li><span><span data-t="install.step1">Tap the Share button at the bottom of Safari.</span> <span class="glyph"><svg aria-hidden="true"><use href="#i-share"/></svg></span></span></li>
+        <li><span><span data-t="install.step2">Scroll and tap "Add to Home Screen".</span> <span class="glyph"><svg aria-hidden="true"><use href="#i-addsq"/></svg></span></span></li>
+        <li><span data-t="install.step3">Tap "Add", then open CampusOS from your Home Screen.</span></li>
+      </ol>
+      <button class="btn" data-t="install.gotIt">Got it</button>
+    </div>
+  </div></div>
+</figure>
+
+<!-- PUSH -->
+<figure class="plate" id="push">
+  <figcaption><span class="tid">CO-20 · CO-25</span><h2>Push notifications</h2><p class="note">Ordinary system notifications in the student's language. Course code in the title so it fits the lock screen. All six texts are in the table below.</p></figcaption>
+  <div class="phone"><div class="lock">
+    <div class="clock">10:31</div><div class="date" data-t="x.lockDate">Wednesday 25 November</div>
+    <div class="notif"><div class="appi" aria-hidden="true">C</div><div style="flex:1;min-width:0"><div class="meta"><span>CampusOS</span><span data-t="x.nowAgo">now</span></div><div class="t" data-t="push.room.title" data-code="TKE-205">TKE-205: room moved</div><div class="bd"><span data-t="date.today">Today</span> 13:30 → Lab Komputer 2. AC rusak di Lab Elektronika.</div></div></div>
+    <div class="notif"><div class="appi" aria-hidden="true">C</div><div style="flex:1;min-width:0"><div class="meta"><span>CampusOS</span><span data-t="x.ago25">25m ago</span></div><div class="t" data-t="push.classSoon.title" data-code="TKE-205">TKE-205 starts in 30 min</div><div class="bd">Struktur Data · 10:00 · Ruang 305</div></div></div>
+  </div></div>
+  <div class="tablebox">
+    <table class="copytable">
+      <tr><th data-t="x.ev1">Class in 30 min</th><td><b data-t="push.classSoon.title" data-code="TKE-205">TKE-205 starts in 30 min</b><br>Struktur Data · 10:00 · Ruang 305</td></tr>
+      <tr><th data-t="x.ev2">Deadline in 24 h</th><td><b><span data-t="push.due24">Due in 24 hours:</span> Tugas 3</b><br>TKE-205 · <span data-t="x.dueWord">due</span> <span data-t="x.wedShort">Wed</span> 23:59 WIB</td></tr>
+      <tr><th data-t="x.ev3">Deadline in 1 h</th><td><b><span data-t="push.due1">Due in 1 hour:</span> Tugas 3</b><br>TKE-205 · <span data-t="x.dueWord">due</span> <span data-t="x.wedShort">Wed</span> 23:59 WIB. <span data-t="x.submitNow">Submit now.</span></td></tr>
+      <tr><th data-t="x.ev4">Room change</th><td><b data-t="push.room.title" data-code="TKE-205">TKE-205: room moved</b><br><span data-t="date.today">Today</span> 10:00 → Ruang 305. Projector broken in 204.</td></tr>
+      <tr><th data-t="x.ev5">Lecturer absent</th><td><b data-t="push.absent.title" data-code="TKE-201P">TKE-201P cancelled</b><br><span data-t="date.today">Today</span> 13:30: <span data-t="today.lecturerAbsent">lecturer absent</span>. Asisten lab ujian.</td></tr>
+      <tr><th data-t="x.ev6">Rescheduled</th><td><b data-t="push.reschedule.title" data-code="TKE-201">TKE-201: new time</b><br><span data-t="x.fri28">Fri 28 Nov</span>: 08:00 → 10:00. Rapat jurusan pagi.</td></tr>
+    </table>
+  </div>
+</figure>
+
+</main>
+
+<script>
+(() => {
+  const M = {
+    en: {
+      "lang.switch":"Bahasa Indonesia","login.tagline":"Your classes, assignments and class changes in one place.","login.google":"Continue with Google","login.hint":"Use your student Google account.",
+      "onb.step":"Step {n} of 3","onb.continue":"Continue","onb.continueCount":"Continue ({n} selected)","onb.classesTitle":"Pick your classes","onb.classesBody":"Choose every class and section you attend this semester.","onb.search":"Search code or name",
+      "onb.remindTitle":"Get reminders","onb.remindBody":"We'll remind you 30 minutes before class, before deadlines, and when a class is cancelled or moved.","onb.remindOn":"Turn on reminders","onb.notNow":"Not now",
+      "type.lecture":"Lecture","type.lab":"Lab","type.advising":"Advising",
+      "nav.today":"Today","nav.assignments":"Assignments","nav.updates":"Updates","nav.newUpdates":"New",
+      "today.tomorrow":"Tomorrow","today.classes":"Classes","today.now":"Now","today.next":"Next","today.dueSoon":"Due soon","today.seeAll":"See all","today.lecturerAbsent":"lecturer absent",
+      "badge.absent":"Cancelled","badge.room_change":"Room moved","badge.reschedule":"New time",
+      "due.overdue":"Overdue","due.hours":"Due in {n}h","due.days":"{n} days",
+      "assignments.todo":"To do","assignments.done":"Done","assignments.add":"Add","assignments.overdue":"Overdue","assignments.today":"Today","assignments.thisWeek":"This week","assignments.later":"Later",
+      "assignments.edit":"Edit","assignments.due":"Due","assignments.instructions":"Instructions","assignments.links":"Links","assignments.postedByShort":"Posted by","assignments.markDone":"Mark as done",
+      "common.back":"Back","role.classrep":"class rep","role.labassistant":"lab assistant","role.lecturer":"lecturer",
+      "editor.newTitle":"New assignment","editor.class":"Class","editor.title":"Title","editor.due":"Due (WIB)","editor.nextClass":"Next class","editor.inWeek":"In 1 week","editor.pickDate":"Pick date","editor.instructions":"Instructions (optional)","editor.links":"Links (optional)","editor.addLink":"Add link","editor.post":"Post assignment",
+      "updates.trust":"Only verified class reps, lab assistants and lecturers can post.","updates.post":"Post update","updates.formTitle":"Post class update","updates.class":"Class","updates.whatChanged":"What changed?","updates.kindAbsent":"Cancelled","updates.kindRoom":"Room","updates.kindTime":"Time","updates.session":"Which session?","updates.otherDate":"Other date","updates.newRoom":"New room","updates.note":"Note (optional)","updates.submitCount":"Post and notify {n} students",
+      "date.today":"Today",
+      "notif.banner":"Get a reminder 30 min before class and when it's moved.","notif.turnOn":"Turn on reminders","notif.deniedBanner":"Reminders are off, so you won't hear about cancelled or moved classes.","notif.howLink":"How to turn on","notif.blocked":"Blocked in settings","notif.howIos":"Open iPhone Settings → Notifications → CampusOS → turn on Allow Notifications.",
+      "account.title":"Account","account.classes":"Classes","account.classCount":"{n} classes","account.language":"Language","account.reminders":"Reminders","account.signOut":"Sign out",
+      "install.banner":"Add CampusOS to your Home Screen to get class reminders.","install.how":"How?","install.title":"Add to Home Screen","install.step1":"Tap the Share button at the bottom of Safari.","install.step2":"Scroll and tap \"Add to Home Screen\".","install.step3":"Tap \"Add\", then open CampusOS from your Home Screen.","install.gotIt":"Got it",
+      "push.classSoon.title":"{code} starts in 30 min","push.room.title":"{code}: room moved","push.absent.title":"{code} cancelled","push.reschedule.title":"{code}: new time","push.due24":"Due in 24 hours:","push.due1":"Due in 1 hour:",
+      "x.secA":"Sec A","x.secB":"Sec B","x.mon0800":"Mon 08:00","x.tue1000":"Tue 10:00","x.wed1330":"Wed 13:30","x.wed1000":"Wed 10:00","x.todayDate":"Wednesday, 25 November","x.lockDate":"Wednesday 25 November",
+      "x.due1":"Tue 24 Nov, 23:59","x.due2":"Wed 25 Nov, 23:59","x.due3":"Fri 27 Nov, 16:00","x.due4":"Mon 8 Dec, 23:59","x.dueLong":"Wednesday 25 November, 23:59 WIB","x.in13":"in 13 hours","x.readback":"Friday 27 November, 10:00 WIB",
+      "x.ago1":"1h ago","x.ago2":"2h ago","x.ago3":"yesterday","x.ago25":"25m ago","x.nowAgo":"now","x.fri28":"Fri 28 Nov","x.fri27":"Fri 27 Nov","x.wedShort":"Wed","x.dueWord":"due","x.submitNow":"Submit now.",
+      "x.ev1":"Class in 30 min","x.ev2":"Deadline in 24 h","x.ev3":"Deadline in 1 h","x.ev4":"Room change","x.ev5":"Lecturer absent","x.ev6":"Rescheduled"
+    },
+    id: {
+      "lang.switch":"English","login.tagline":"Jadwal, tugas, dan info perubahan kelas dalam satu tempat.","login.google":"Masuk dengan Google","login.hint":"Gunakan akun Google mahasiswa kamu.",
+      "onb.step":"Langkah {n} dari 3","onb.continue":"Lanjut","onb.continueCount":"Lanjut ({n} dipilih)","onb.classesTitle":"Pilih kelas kamu","onb.classesBody":"Pilih semua kelas dan seksi yang kamu ikuti semester ini.","onb.search":"Cari kode atau nama",
+      "onb.remindTitle":"Aktifkan pengingat","onb.remindBody":"Kami akan mengingatkan 30 menit sebelum kelas, sebelum tenggat, dan saat kelas batal atau pindah.","onb.remindOn":"Aktifkan pengingat","onb.notNow":"Nanti saja",
+      "type.lecture":"Kuliah","type.lab":"Praktikum","type.advising":"Bimbingan",
+      "nav.today":"Hari ini","nav.assignments":"Tugas","nav.updates":"Info kelas","nav.newUpdates":"Baru",
+      "today.tomorrow":"Besok","today.classes":"Kelas","today.now":"Sekarang","today.next":"Berikutnya","today.dueSoon":"Segera dikumpulkan","today.seeAll":"Lihat semua","today.lecturerAbsent":"dosen berhalangan",
+      "badge.absent":"Batal","badge.room_change":"Pindah ruang","badge.reschedule":"Jam berubah",
+      "due.overdue":"Lewat tenggat","due.hours":"{n} jam lagi","due.days":"{n} hari",
+      "assignments.todo":"Belum","assignments.done":"Selesai","assignments.add":"Tambah","assignments.overdue":"Lewat tenggat","assignments.today":"Hari ini","assignments.thisWeek":"Minggu ini","assignments.later":"Nanti",
+      "assignments.edit":"Ubah","assignments.due":"Tenggat","assignments.instructions":"Instruksi","assignments.links":"Tautan","assignments.postedByShort":"Diposting oleh","assignments.markDone":"Tandai selesai",
+      "common.back":"Kembali","role.classrep":"ketua kelas","role.labassistant":"asisten lab","role.lecturer":"dosen",
+      "editor.newTitle":"Tugas baru","editor.class":"Kelas","editor.title":"Judul","editor.due":"Tenggat (WIB)","editor.nextClass":"Pertemuan berikutnya","editor.inWeek":"1 minggu lagi","editor.pickDate":"Pilih tanggal","editor.instructions":"Instruksi (opsional)","editor.links":"Tautan (opsional)","editor.addLink":"Tambah tautan","editor.post":"Kirim tugas",
+      "updates.trust":"Hanya ketua kelas, asisten lab, dan dosen terverifikasi yang bisa memposting.","updates.post":"Kirim info","updates.formTitle":"Kirim info kelas","updates.class":"Kelas","updates.whatChanged":"Apa yang berubah?","updates.kindAbsent":"Batal","updates.kindRoom":"Ruang","updates.kindTime":"Jam","updates.session":"Sesi yang mana?","updates.otherDate":"Tanggal lain","updates.newRoom":"Ruang baru","updates.note":"Catatan (opsional)","updates.submitCount":"Kirim dan beri tahu {n} mahasiswa",
+      "date.today":"Hari ini",
+      "notif.banner":"Dapatkan pengingat 30 menit sebelum kelas dan saat kelas pindah.","notif.turnOn":"Aktifkan pengingat","notif.deniedBanner":"Pengingat mati, jadi kamu tidak akan tahu jika kelas batal atau pindah.","notif.howLink":"Cara mengaktifkan","notif.blocked":"Diblokir di pengaturan","notif.howIos":"Buka Pengaturan iPhone → Notifikasi → CampusOS → aktifkan Izinkan Notifikasi.",
+      "account.title":"Akun","account.classes":"Kelas","account.classCount":"{n} kelas","account.language":"Bahasa","account.reminders":"Pengingat","account.signOut":"Keluar",
+      "install.banner":"Tambahkan CampusOS ke Layar Utama agar dapat pengingat kelas.","install.how":"Caranya?","install.title":"Tambah ke Layar Utama","install.step1":"Ketuk tombol Bagikan di bagian bawah Safari.","install.step2":"Gulir lalu ketuk \"Tambah ke Layar Utama\".","install.step3":"Ketuk \"Tambah\", lalu buka CampusOS dari Layar Utama.","install.gotIt":"Mengerti",
+      "push.classSoon.title":"{code} mulai 30 menit lagi","push.room.title":"{code}: pindah ruang","push.absent.title":"{code} batal","push.reschedule.title":"{code}: jam berubah","push.due24":"Tenggat 24 jam lagi:","push.due1":"Tenggat 1 jam lagi:",
+      "x.secA":"Kelas A","x.secB":"Kelas B","x.mon0800":"Sen 08.00","x.tue1000":"Sel 10.00","x.wed1330":"Rab 13.30","x.wed1000":"Rab 10.00","x.todayDate":"Rabu, 25 November","x.lockDate":"Rabu, 25 November",
+      "x.due1":"Sel 24 Nov, 23.59","x.due2":"Rab 25 Nov, 23.59","x.due3":"Jum 27 Nov, 16.00","x.due4":"Sen 8 Des, 23.59","x.dueLong":"Rabu, 25 November, 23.59 WIB","x.in13":"13 jam lagi","x.readback":"Jumat, 27 November, 10.00 WIB",
+      "x.ago1":"1 jam lalu","x.ago2":"2 jam lalu","x.ago3":"kemarin","x.ago25":"25 mnt lalu","x.nowAgo":"sekarang","x.fri28":"Jum 28 Nov","x.fri27":"Jum 27 Nov","x.wedShort":"Rab","x.dueWord":"tenggat","x.submitNow":"Kumpulkan sekarang.",
+      "x.ev1":"Kelas 30 menit lagi","x.ev2":"Tenggat 24 jam lagi","x.ev3":"Tenggat 1 jam lagi","x.ev4":"Pindah ruang","x.ev5":"Dosen berhalangan","x.ev6":"Jadwal berubah"
+    }
+  };
+  const fill = (s, el) => s.replace("{n}", el.dataset.n ?? "").replace("{code}", el.dataset.code ?? "");
+  function setLang(lang) {
+    document.querySelectorAll("[data-t]").forEach((el) => {
+      const s = M[lang][el.dataset.t];
+      if (s == null) { console.warn("missing copy", lang, el.dataset.t); return; }
+      el.textContent = fill(s, el);
+    });
+    document.querySelectorAll("[data-tp]").forEach((el) => { el.placeholder = M[lang][el.dataset.tp]; });
+    document.querySelectorAll(".phone, .tablebox").forEach((el) => { el.lang = lang; });
+    document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === lang)));
+    try { localStorage.setItem("board-lang", lang); } catch {}
+  }
+  function setTheme(t) {
+    if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === t)));
+    try { localStorage.setItem("board-theme", t); } catch {}
+  }
+  document.querySelectorAll("[data-lang-btn]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.langBtn)));
+  document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+  // Mockups are pictures: links inside phones jump within the board, nothing else is clickable.
+  document.querySelectorAll(".phone button, .phone input, .phone textarea").forEach((el) => { el.tabIndex = -1; if (el.matches("input, textarea")) el.readOnly = true; });
+  let lang = "en", theme = "system";
+  try { lang = localStorage.getItem("board-lang") || "en"; theme = localStorage.getItem("board-theme") || "system"; } catch {}
+  setLang(M[lang] ? lang : "en");
+  setTheme(["system", "light", "dark"].includes(theme) ? theme : "system");
+})();
+</script>

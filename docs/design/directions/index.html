@@ -1,0 +1,566 @@
+<title>CampusOS Design Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=Lexend:wght@300;400;500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a decision page. Board chrome on top, then three direction sections; each section = a short spec column + three 390px phones.
+   Board chrome tokens live on :root; each direction scopes its own app tokens on .dir-a / .dir-b / .dir-c. */
+:root {
+  --bg:#eceef1; --fg:#14171c; --muted:#4b5360; --line:#d5d9df; --card:#f8f9fa; --focus:#1554c0;
+  --chrome-font: "Barlow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0c0e12; --fg:#e7eaee; --muted:#a0a8b4; --line:#2a2f38; --card:#151920; --focus:#8ab4ff; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg:#0c0e12; --fg:#e7eaee; --muted:#a0a8b4; --line:#2a2f38; --card:#151920; --focus:#8ab4ff; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--chrome-font); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 72px; }
+::selection { background: color-mix(in srgb, var(--focus) 30%, transparent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); border-bottom: 1px solid var(--line); padding-block: 14px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 31; background: var(--bg); }
+.top h1 { margin: 0; font-size: 22px; font-weight: 700; }
+.top p { margin: 0; font-size: 14px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.seg button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 7px; background: none; color: var(--muted); cursor: pointer; font-size: 15px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 600; }
+.lead { max-width: 70ch; margin: 22px 0 0; color: var(--muted); }
+.lead strong { color: var(--fg); }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.jump a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--fg); text-decoration: none; background: var(--card); font-weight: 500; }
+.dir { margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--line); scroll-margin-top: 90px; }
+.dir-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; max-width: 1240px; }
+@media (min-width: 980px) { .dir-head { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+.dir-head h2 { margin: 0; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; letter-spacing: -0.02em; }
+.idea { margin: 8px 0 0; font-size: 19px; max-width: 46ch; }
+.pick { display: inline-block; margin-top: 12px; padding: 4px 10px; border-radius: 6px; background: var(--fg); color: var(--bg); font-weight: 600; font-size: 14px; }
+.specs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px 24px; font-size: 15px; }
+@media (min-width: 640px) { .specs { grid-template-columns: max-content minmax(0, 1fr); } }
+.specs dt { color: var(--muted); font-weight: 600; }
+.specs dd { margin: 0; }
+.sw { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw > span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 13px; font-variant-numeric: tabular-nums; }
+.sw i { width: 22px; height: 22px; border-radius: 5px; display: inline-block; border: 1px solid rgba(127,127,127,.35); }
+.phones { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr)); gap: 40px 32px; margin-top: 32px; justify-items: center; }
+.ph { width: min(390px, 100%); margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.ph figcaption { font-weight: 600; }
+.ph figcaption small { display: block; font-weight: 400; color: var(--muted); font-size: 14px; }
+.frame { width: 100%; border: 8px solid #20242b; border-radius: 44px; overflow: hidden; position: relative; }
+:root[data-theme="dark"] .frame { border-color: #3a404a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .frame { border-color: #3a404a; } }
+.screen { min-height: 780px; display: flex; flex-direction: column; position: relative; background: var(--a-bg); color: var(--a-ink); }
+svg.i { width: 22px; height: 22px; flex-shrink: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tab { font-variant-numeric: tabular-nums; }
+
+/* ============ A · PAPAN JADWAL (departure board) ============ */
+.dir-a { --a-bg:#F3F5F8; --a-surface:#FFFFFF; --a-ink:#0E1B2C; --a-muted:#4A5868; --a-line:#DCE1E8; --a-line-strong:#6B7889;
+  --a-band:#0E1B2C; --a-on-band:#FFFFFF; --a-on-band-muted:#B8C4D3; --a-yellow:#FFC72C; --a-on-yellow:#0E1B2C; --a-red:#B3261E; --a-on-red:#FFFFFF; --a-link:#1554C0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dir-a { --a-bg:#0A1320; --a-surface:#121E2E; --a-ink:#E8EEF5; --a-muted:#9AA9BA; --a-line:#22324A; --a-line-strong:#6B7889;
+  --a-band:#16263C; --a-on-band:#E8EEF5; --a-on-band-muted:#A9B8CA; --a-red:#FF8A80; --a-on-red:#2A0A08; --a-link:#8AB4FF; } }
+:root[data-theme="dark"] .dir-a { --a-bg:#0A1320; --a-surface:#121E2E; --a-ink:#E8EEF5; --a-muted:#9AA9BA; --a-line:#22324A; --a-line-strong:#6B7889;
+  --a-band:#16263C; --a-on-band:#E8EEF5; --a-on-band-muted:#A9B8CA; --a-red:#FF8A80; --a-on-red:#2A0A08; --a-link:#8AB4FF; }
+.dir-a .screen { font-family: "Barlow", system-ui, sans-serif; }
+.a-band { background: var(--a-band); color: var(--a-on-band); padding: 26px 16px 14px; }
+.a-band .row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.a-band .row1 .lang { min-height: 44px; padding: 0 6px; border: 0; background: none; color: var(--a-on-band); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.a-band .acc { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--a-on-band-muted); background: none; color: var(--a-on-band); font-weight: 700; }
+.a-band h3 { margin: 6px 0 0; font: 700 30px/1 "Barlow Semi Condensed", "Barlow", sans-serif; letter-spacing: -0.01em; }
+.a-band .meta { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; color: var(--a-on-band-muted); }
+.a-band .clock { font: 700 34px/1 "Barlow Semi Condensed", sans-serif; color: var(--a-yellow); font-variant-numeric: tabular-nums; }
+.a-cols { display: grid; grid-template-columns: 58px minmax(0, 1fr) 76px; gap: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--a-muted); border-bottom: 1px solid var(--a-line); background: var(--a-surface); }
+.a-cols span:last-child { text-align: right; }
+.a-row { display: grid; grid-template-columns: 58px minmax(0, 1fr) 76px; gap: 4px 10px; padding: 12px 16px; border-bottom: 1px solid var(--a-line); background: var(--a-surface); align-items: start; }
+.a-row .tc { font: 700 21px/1.05 "Barlow Semi Condensed", sans-serif; font-variant-numeric: tabular-nums; }
+.a-row .tc small { display: block; font: 500 14px/1.3 "Barlow", sans-serif; color: var(--a-muted); margin-top: 2px; }
+.a-row .c { min-width: 0; }
+.a-row .c b { display: block; font-size: 17px; font-weight: 600; line-height: 1.25; }
+.a-row .c span { font-size: 14px; color: var(--a-muted); }
+.a-row .r { text-align: right; font: 700 21px/1.05 "Barlow Semi Condensed", sans-serif; }
+.a-row .r small { display: block; font: 500 13px/1.3 "Barlow", sans-serif; color: var(--a-muted); margin-top: 2px; }
+.a-row .st { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; }
+.a-flag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 14px; background: var(--a-yellow); color: var(--a-on-yellow); }
+.a-flag.red { background: var(--a-red); color: var(--a-on-red); }
+.a-flag svg { width: 14px; height: 14px; }
+.a-row.done { background: transparent; }
+.a-row.done, .a-row.done .c span, .a-row.done .tc small, .a-row.done .r small { color: var(--a-muted); }
+.a-row.now { background: var(--a-band); color: var(--a-on-band); border-bottom-color: var(--a-band); }
+.a-row.now .c span, .a-row.now .tc small, .a-row.now .r small { color: var(--a-on-band-muted); }
+.a-row.now .r { color: var(--a-yellow); }
+.a-row.off .c b, .a-row.off .r span { text-decoration: line-through; text-decoration-thickness: 2px; }
+.a-row .nx { font-weight: 700; color: var(--a-link); }
+.a-sec { display: flex; justify-content: space-between; align-items: center; padding: 18px 16px 8px; }
+.a-sec h4 { margin: 0; font: 700 19px/1.2 "Barlow Semi Condensed", sans-serif; }
+.a-sec a { min-height: 44px; display: inline-flex; align-items: center; color: var(--a-link); font-weight: 600; text-decoration: none; }
+.a-due { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; padding: 12px 16px; background: var(--a-surface); border-bottom: 1px solid var(--a-line); align-items: center; }
+.a-due .cd { font: 700 21px/1 "Barlow Semi Condensed", sans-serif; font-variant-numeric: tabular-nums; }
+.a-due .cd small { display: block; font: 500 13px/1.2 "Barlow", sans-serif; color: var(--a-muted); }
+.a-due .cd.red { color: var(--a-red); }
+.a-due b { display: block; font-size: 16px; font-weight: 600; line-height: 1.25; }
+.a-due span { font-size: 14px; color: var(--a-muted); }
+.a-due .w { font-size: 14px; color: var(--a-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.a-nav { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-surface); border-top: 1px solid var(--a-line); padding-bottom: 8px; }
+.a-nav > span { min-height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 500; color: var(--a-muted); position: relative; }
+.a-nav > span.on { color: var(--a-ink); font-weight: 700; }
+.a-nav > span.on::before { content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; background: var(--a-yellow); }
+.a-form { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.a-label { font-weight: 600; font-size: 15px; margin-bottom: 6px; display: block; }
+.a-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.a-key { min-height: 64px; border: 1.5px solid var(--a-line-strong); border-radius: 6px; background: var(--a-surface); color: var(--a-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 600; font-size: 15px; }
+.a-key.on { background: var(--a-yellow); color: var(--a-on-yellow); border-color: var(--a-yellow); }
+.a-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.a-chip { min-height: 44px; padding: 0 12px; border: 1.5px solid var(--a-line-strong); border-radius: 6px; display: inline-flex; align-items: center; background: var(--a-surface); font-weight: 500; font-variant-numeric: tabular-nums; }
+.a-chip.on { border-color: var(--a-ink); background: var(--a-ink); color: var(--a-bg); font-weight: 600; }
+.a-input { min-height: 52px; width: 100%; border: 1.5px solid var(--a-line-strong); border-radius: 6px; background: var(--a-surface); color: var(--a-ink); padding: 0 12px; font: 600 22px "Barlow Semi Condensed", sans-serif; }
+.a-input.sm { font: 400 16px "Barlow", sans-serif; min-height: 48px; }
+.a-btn { min-height: 52px; width: 100%; border: 0; border-radius: 6px; background: var(--a-band); color: var(--a-on-band); font-weight: 700; font-size: 17px; }
+.a-preview { border: 1.5px dashed var(--a-line-strong); border-radius: 6px; overflow: hidden; }
+.a-preview .cap { padding: 6px 10px; font-size: 13px; color: var(--a-muted); background: var(--a-bg); }
+.a-tabs { display: flex; gap: 0; margin-top: 12px; }
+.a-tabs > span { min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; font-weight: 600; color: var(--a-on-band-muted); border-bottom: 3px solid transparent; }
+.a-tabs > span.on { color: var(--a-on-band); border-bottom-color: var(--a-yellow); }
+.a-day { padding: 10px 16px 6px; font: 700 15px "Barlow Semi Condensed", sans-serif; color: var(--a-muted); background: var(--a-bg); display: flex; justify-content: space-between; }
+
+/* ============ B · BENANG EMAS (gold thread) ============ */
+.dir-b { --a-bg:#F6F3F5; --a-surface:#FFFFFF; --a-ink:#241019; --a-muted:#6B5560; --a-line:#E7DDE2; --a-line-strong:#8A7480;
+  --b-red:#9E1B32; --b-on-red:#FFFFFF; --b-red-soft:#FBE9EC; --b-gold:#A0760A; --b-gold-text:#7A5A06; --b-gold-soft:#F7EFD9; --b-green:#1F6B4F; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dir-b { --a-bg:#1A0E14; --a-surface:#26161E; --a-ink:#F5EDF0; --a-muted:#C2AEB7; --a-line:#3A2630; --a-line-strong:#8A7480;
+  --b-red:#F28B9B; --b-on-red:#1A0E14; --b-red-soft:#3D1620; --b-gold:#E0B44C; --b-gold-text:#E0B44C; --b-gold-soft:#33260F; --b-green:#7FD6AE; } }
+:root[data-theme="dark"] .dir-b { --a-bg:#1A0E14; --a-surface:#26161E; --a-ink:#F5EDF0; --a-muted:#C2AEB7; --a-line:#3A2630; --a-line-strong:#8A7480;
+  --b-red:#F28B9B; --b-on-red:#1A0E14; --b-red-soft:#3D1620; --b-gold:#E0B44C; --b-gold-text:#E0B44C; --b-gold-soft:#33260F; --b-green:#7FD6AE; }
+.dir-b .screen { font-family: "Lexend", system-ui, sans-serif; font-weight: 400; padding: 0 16px; }
+.b-top { display: flex; justify-content: space-between; align-items: center; padding-top: 22px; }
+.b-top .lang { min-height: 44px; border: 0; background: none; color: var(--b-red); font-weight: 500; padding: 0 4px; }
+.b-top .acc { width: 44px; height: 44px; border-radius: 999px; border: 1.5px solid var(--b-gold); background: none; color: var(--a-ink); font-weight: 600; }
+.b-greet { margin: 10px 0 0; color: var(--a-muted); font-size: 16px; }
+.b-h { margin: 2px 0 0; font: 600 28px/1.15 "Lexend", sans-serif; letter-spacing: -0.02em; }
+.b-sum { margin: 8px 0 0; font-size: 15px; color: var(--a-ink); }
+.b-sum b { color: var(--b-red); font-weight: 600; }
+.b-thread { position: relative; margin-top: 22px; padding-left: 72px; }
+.b-thread::before { content: ""; position: absolute; left: 58px; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: linear-gradient(var(--b-gold) 0 var(--done, 30%), color-mix(in srgb, var(--b-gold) 35%, transparent) var(--done, 30%) 100%); }
+.b-seg { position: relative; padding: 0 0 18px 10px; }
+.b-seg .tm { position: absolute; left: -72px; width: 52px; text-align: right; top: -1px; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.b-seg .tm small { display: block; font-size: 13px; font-weight: 400; color: var(--a-muted); }
+.b-seg .bead { position: absolute; left: -20px; top: 4px; width: 13px; height: 13px; border-radius: 999px; background: var(--b-gold); box-shadow: 0 0 0 3px var(--a-bg); }
+.b-seg .bead.knot { width: 15px; height: 15px; left: -21px; border-radius: 3px; transform: rotate(45deg); background: var(--b-red); }
+.b-seg .bead.open { background: var(--a-bg); border: 3px solid var(--b-gold); }
+.b-seg h5 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3; }
+.b-seg p { margin: 2px 0 0; font-size: 14px; color: var(--a-muted); }
+.b-seg .room { font-size: 15px; color: var(--a-ink); margin-top: 4px; }
+.b-seg .room b { font-weight: 600; }
+.b-seg.past h5, .b-seg.past .room, .b-seg.past .tm { color: var(--a-muted); }
+.b-seg.now { background: var(--a-surface); border-radius: 14px; padding: 12px 12px 14px 14px; margin: 0 0 18px 0; box-shadow: 0 6px 18px -10px rgba(36,16,25,.35); }
+.b-seg.now .bead { left: -24px; top: 16px; }
+.b-seg.now .tm { left: -76px; top: 11px; }
+.b-nowline { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--b-gold-text); margin-bottom: 6px; }
+.b-nowline i { flex: 1; height: 2px; background: var(--b-gold); border-radius: 2px; position: relative; }
+.b-nowline i::after { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 100%; }
+.b-note { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: var(--b-red-soft); color: var(--b-red); font-size: 14px; font-weight: 500; }
+.b-note svg { width: 14px; height: 14px; }
+.b-seg.off h5 { text-decoration: line-through; text-decoration-color: var(--b-red); text-decoration-thickness: 2px; }
+.b-gap { height: var(--h, 16px); }
+.b-sec { margin: 8px 0 10px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.b-sec a { min-height: 44px; display: inline-flex; align-items: center; color: var(--b-red); text-decoration: none; font-size: 15px; font-weight: 500; }
+.b-due { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--a-line); }
+.b-due .tag { min-width: 64px; text-align: center; padding: 6px 4px; border-radius: 10px; background: var(--b-gold-soft); color: var(--b-gold-text); font-weight: 600; font-size: 15px; line-height: 1.1; }
+.b-due .tag small { display: block; font-size: 12px; font-weight: 400; }
+.b-due .tag.red { background: var(--b-red-soft); color: var(--b-red); }
+.b-due b { display: block; font-weight: 600; font-size: 16px; line-height: 1.3; }
+.b-due span { font-size: 14px; color: var(--a-muted); }
+.b-nav { margin: auto -16px 0; display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px 12px 12px; gap: 6px; background: var(--a-bg); border-top: 1px solid var(--a-line); }
+.b-nav > span { min-height: 52px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: var(--a-muted); }
+.b-nav > span.on { background: var(--a-ink); color: var(--a-bg); font-weight: 600; }
+.b-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.b-tile { min-height: 84px; border-radius: 16px; border: 1.5px solid var(--a-line-strong); background: var(--a-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-weight: 500; font-size: 15px; color: var(--a-ink); }
+.b-tile.on { border-color: var(--b-red); background: var(--b-red); color: var(--b-on-red); }
+.b-tile svg { width: 24px; height: 24px; }
+.b-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.b-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--a-line-strong); display: inline-flex; align-items: center; font-size: 15px; font-variant-numeric: tabular-nums; }
+.b-chip.on { border-color: var(--b-gold); background: var(--b-gold-soft); color: var(--a-ink); font-weight: 600; }
+.b-input { min-height: 50px; width: 100%; border-radius: 12px; border: 1.5px solid var(--a-line-strong); background: var(--a-surface); color: var(--a-ink); padding: 0 14px; font: 500 17px "Lexend", sans-serif; }
+.b-btn { min-height: 52px; width: 100%; border: 0; border-radius: 999px; background: var(--b-red); color: var(--b-on-red); font: 600 17px "Lexend", sans-serif; }
+.b-lab { font-size: 15px; font-weight: 500; margin: 0 0 8px; }
+.b-prev { border-radius: 14px; background: var(--a-surface); padding: 12px 12px 4px 14px; border: 1px solid var(--a-line); }
+.b-prev .cap { font-size: 13px; color: var(--a-muted); margin-bottom: 8px; }
+.b-seg2 { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--a-surface); border: 1px solid var(--a-line); margin-top: 14px; }
+.b-seg2 > span { min-height: 40px; padding: 0 16px; border-radius: 999px; display: inline-flex; align-items: center; color: var(--a-muted); font-size: 15px; }
+.b-seg2 > span.on { background: var(--a-ink); color: var(--a-bg); font-weight: 500; }
+
+/* ============ C · BERANDA (super-app home) ============ */
+.dir-c { --a-bg:#F1F5F5; --a-surface:#FFFFFF; --a-ink:#0F2222; --a-muted:#4D6161; --a-line:#DCE6E6; --a-line-strong:#6A7E7E;
+  --c-head:#00696B; --c-on-head:#FFFFFF; --c-on-head-muted:#CDE9E8; --c-primary:#00696B; --c-on-primary:#FFFFFF; --c-tint:#E0F2F1;
+  --c-sun:#FFB400; --c-on-sun:#0F2222; --c-warn-soft:#FFF4D6; --c-warn:#7A4A00; --c-red:#B42318; --c-red-soft:#FDECEA; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dir-c { --a-bg:#081414; --a-surface:#112222; --a-ink:#E7F2F2; --a-muted:#9DB5B5; --a-line:#1F3434; --a-line-strong:#5F7676;
+  --c-head:#0D3B3C; --c-on-head:#E7F2F2; --c-on-head-muted:#A9CFCD; --c-primary:#4FD1C5; --c-on-primary:#062020; --c-tint:#123534;
+  --c-sun:#FFC23D; --c-on-sun:#0F2222; --c-warn-soft:#3A2A06; --c-warn:#FFC23D; --c-red:#FF8E85; --c-red-soft:#3D1512; } }
+:root[data-theme="dark"] .dir-c { --a-bg:#081414; --a-surface:#112222; --a-ink:#E7F2F2; --a-muted:#9DB5B5; --a-line:#1F3434; --a-line-strong:#5F7676;
+  --c-head:#0D3B3C; --c-on-head:#E7F2F2; --c-on-head-muted:#A9CFCD; --c-primary:#4FD1C5; --c-on-primary:#062020; --c-tint:#123534;
+  --c-sun:#FFC23D; --c-on-sun:#0F2222; --c-warn-soft:#3A2A06; --c-warn:#FFC23D; --c-red:#FF8E85; --c-red-soft:#3D1512; }
+.dir-c .screen { font-family: "Rubik", system-ui, sans-serif; }
+.c-head { background: var(--c-head); color: var(--c-on-head); padding: 24px 16px 64px; }
+.c-head .r1 { display: flex; justify-content: space-between; align-items: center; }
+.c-head .r1 .lang { min-height: 44px; border: 0; background: rgba(255,255,255,.14); color: var(--c-on-head); border-radius: 999px; padding: 0 14px; font-weight: 500; font-size: 14px; }
+.c-head .acc { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--c-sun); color: var(--c-on-sun); font-weight: 700; }
+.c-head .hi { margin: 14px 0 0; color: var(--c-on-head-muted); font-size: 15px; }
+.c-head h3 { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.c-hero { margin: -48px 16px 0; background: var(--a-surface); border-radius: 22px; padding: 16px; box-shadow: 0 10px 24px -14px rgba(0,40,40,.45); position: relative; }
+.c-hero .k { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--a-muted); }
+.c-hero .k b { color: var(--c-primary); font-weight: 600; }
+.c-hero .room { margin-top: 6px; font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.c-hero .cls { margin-top: 6px; font-size: 16px; font-weight: 500; }
+.c-hero .cls span { color: var(--a-muted); font-weight: 400; }
+.c-stick { position: absolute; right: 14px; top: 44px; transform: rotate(4deg); background: var(--c-sun); color: var(--c-on-sun); font-weight: 700; font-size: 14px; padding: 6px 10px; border-radius: 10px; box-shadow: 0 4px 10px -4px rgba(0,0,0,.35); line-height: 1.15; text-align: center; }
+.c-stick small { display: block; font-weight: 500; font-size: 12px; }
+.c-icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 16px 12px 4px; }
+.c-icons > span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; text-align: center; min-height: 76px; }
+.c-icons i { width: 50px; height: 50px; border-radius: 999px; display: grid; place-items: center; background: var(--c-tint); color: var(--c-primary); }
+.c-icons i.sun { background: var(--c-warn-soft); color: var(--c-warn); }
+.c-icons i svg { width: 24px; height: 24px; }
+.c-sec { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+.c-sec h4 { margin: 0; font-size: 18px; font-weight: 700; }
+.c-sec a { min-height: 44px; display: inline-flex; align-items: center; color: var(--c-primary); font-weight: 600; text-decoration: none; font-size: 15px; }
+.c-list { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.c-item { display: flex; gap: 12px; align-items: center; background: var(--a-surface); border-radius: 18px; padding: 12px 14px; min-height: 64px; }
+.c-item .tm { width: 50px; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.c-item .tm small { display: block; font-weight: 400; font-size: 13px; color: var(--a-muted); }
+.c-item .tx { flex: 1; min-width: 0; }
+.c-item .tx b { display: block; font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-item .tx span { font-size: 14px; color: var(--a-muted); }
+.c-item.past { background: transparent; box-shadow: inset 0 0 0 1px var(--a-line); }
+.c-item.past .tm, .c-item.past b { color: var(--a-muted); }
+.c-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.c-pill svg { width: 14px; height: 14px; }
+.c-pill.red { background: var(--c-red-soft); color: var(--c-red); }
+.c-pill.sun { background: var(--c-warn-soft); color: var(--c-warn); }
+.c-pill.teal { background: var(--c-tint); color: var(--c-primary); }
+.c-item.off b { text-decoration: line-through; }
+.c-cnt { width: 58px; height: 58px; flex-shrink: 0; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; line-height: 1; background: var(--c-warn-soft); color: var(--c-warn); }
+.c-cnt small { font-size: 12px; font-weight: 500; margin-top: 3px; }
+.c-cnt.red { background: var(--c-red-soft); color: var(--c-red); }
+.c-cnt.teal { background: var(--c-tint); color: var(--c-primary); }
+.c-cnt.grey { background: var(--a-bg); color: var(--a-muted); }
+.c-nav { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-surface); padding: 6px 0 10px; box-shadow: 0 -1px 0 var(--a-line); }
+.c-nav > span { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; color: var(--a-muted); }
+.c-nav > span.on { color: var(--c-primary); font-weight: 600; }
+.c-nav > span.on svg { background: var(--c-tint); border-radius: 999px; padding: 3px 14px; width: 52px; height: 30px; }
+.c-sheet { position: absolute; inset: auto 0 0 0; top: 92px; background: var(--a-surface); border-radius: 26px 26px 0 0; padding: 10px 16px 18px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 -8px 24px -12px rgba(0,0,0,.4); }
+.c-grab { width: 40px; height: 5px; border-radius: 999px; background: var(--a-line-strong); margin: 0 auto; opacity: .6; }
+.c-svc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.c-svc > span { display: flex; flex-direction: column; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; padding: 10px 4px; border-radius: 18px; min-height: 104px; justify-content: center; }
+.c-svc i { width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center; }
+.c-svc i svg { width: 26px; height: 26px; }
+.c-svc .x i { background: var(--c-red-soft); color: var(--c-red); }
+.c-svc .m i { background: var(--c-tint); color: var(--c-primary); }
+.c-svc .t i { background: var(--c-warn-soft); color: var(--c-warn); }
+.c-svc > span.on { background: var(--c-tint); box-shadow: inset 0 0 0 2px var(--c-primary); }
+.c-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.c-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--a-bg); display: inline-flex; align-items: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.c-chip.on { background: var(--c-primary); color: var(--c-on-primary); font-weight: 600; }
+.c-input { min-height: 52px; width: 100%; border-radius: 16px; border: 1.5px solid var(--a-line-strong); background: var(--a-surface); color: var(--a-ink); padding: 0 16px; font: 600 20px "Rubik", sans-serif; }
+.c-input.sm { font: 400 16px "Rubik", sans-serif; }
+.c-btn { min-height: 56px; width: 100%; border: 0; border-radius: 999px; background: var(--c-primary); color: var(--c-on-primary); font: 700 17px "Rubik", sans-serif; }
+.c-lab { font-weight: 600; font-size: 15px; margin: 0 0 8px; }
+.c-ptabs { display: inline-flex; background: rgba(255,255,255,.16); border-radius: 999px; padding: 4px; margin-top: 14px; }
+.c-ptabs > span { min-height: 40px; padding: 0 18px; border-radius: 999px; display: inline-flex; align-items: center; color: var(--c-on-head); font-weight: 500; }
+.c-ptabs > span.on { background: var(--c-on-head); color: var(--c-head); font-weight: 700; }
+.c-glabel { padding: 16px 16px 8px; font-weight: 700; font-size: 16px; }
+.c-acard { display: flex; gap: 12px; align-items: center; background: var(--a-surface); border-radius: 18px; padding: 12px; }
+.c-acard b { display: block; font-weight: 600; font-size: 16px; line-height: 1.3; }
+.c-acard span { font-size: 14px; color: var(--a-muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="lst" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="meg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+  <symbol id="clk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17M3 21h18M12 12h.01M16 7h3v14"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="clo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></symbol>
+</defs></svg>
+
+<header class="top">
+  <div><h1>CampusOS design directions</h1><p>Three different looks for Siam to choose from · 25 Nov 2026</p></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-btn="system" aria-pressed="true">System</button><button type="button" data-theme-btn="light" aria-pressed="false">Light</button><button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button></div>
+    <div class="seg" role="group" aria-label="Language of the mockups"><button type="button" data-lang-btn="en" aria-pressed="true">English</button><button type="button" data-lang-btn="id" aria-pressed="false">Indonesia</button></div>
+  </div>
+</header>
+
+<p class="lead">Each direction shows the same three screens with the same data: <strong>Today</strong>, the <strong>class-rep update form</strong> and the <strong>assignments list</strong>, for Siti (TKE, class rep of TKE-205) on Wednesday 25 November at 10:25 WIB. Struktur Data moved from Ruang 204 to 305; the afternoon lab is cancelled. Pick one, or name the parts to mix ("A's board, C's colours"). Research behind them: <code>docs/design/research.md</code>.</p>
+<nav class="jump" aria-label="Directions"><a href="#papan">A · Papan Jadwal</a><a href="#benang">B · Benang Emas</a><a href="#beranda">C · Beranda</a></nav>
+
+<!-- ======================= A ======================= -->
+<section class="dir dir-a" id="papan" aria-labelledby="a-h">
+  <div class="dir-head">
+    <div>
+      <h2 id="a-h">A · Papan Jadwal</h2>
+      <p class="idea">Your day reads like a station departure board: time, class, room, and a status column. A moved room looks like a changed platform; a cancelled class like a cancelled train.</p>
+      <span class="pick">Designer's recommendation</span>
+    </div>
+    <dl class="specs">
+      <dt>Inspired by</dt><dd>SBB and KAI timetables (time left, platform right, status in its own column), Google Calendar's "now" line. Anti-reference: My Study Life's navy cards.</dd>
+      <dt>Palette</dt><dd><div class="sw"><span><i style="background:#0E1B2C"></i>Board navy #0E1B2C</span><span><i style="background:#FFC72C"></i>Signal yellow #FFC72C</span><span><i style="background:#B3261E"></i>Cancel red #B3261E</span><span><i style="background:#F3F5F8"></i>Ground #F3F5F8</span><span><i style="background:#4A5868"></i>Muted #4A5868</span></div></dd>
+      <dt>Fonts</dt><dd>Barlow Semi Condensed for times and rooms (built from road and rail signage, narrow tabular numerals), Barlow for text.</dd>
+      <dt>Cards</dt><dd>No cards. Full-width rows with hairlines, like a board. The class in progress is the one inverted row. Status flags are square-cornered blocks with a word and icon.</dd>
+      <dt>Signature move</dt><dd>The status column. Room changes and cancellations appear exactly where students already look for "platform" and "delay", and the rep's form previews the board row they are about to change.</dd>
+      <dt>Kept from the roll</dt><dd>From the Crouwel grid: the column grid stays visible and strict. From monochrome product pages: yellow and red only when something changed.</dd>
+      <dt>Risk</dt><dd>Dense. Needs real alignment discipline in Tailwind (grid columns, tabular numerals) or it looks like a spreadsheet.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <!-- A Today -->
+    <figure class="ph"><figcaption>Today <small>Board rows, the "now" row inverted, change flags in the status column</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="a-band">
+          <div class="row1"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Account">S</button></div>
+          <h3 class="t" data-i="Hari ini">Today</h3>
+          <div class="meta"><span class="t" data-i="Rabu, 25 November">Wednesday, 25 November</span><span class="clock">10:25</span></div>
+        </div>
+        <div class="a-cols"><span class="t" data-i="Jam">Time</span><span class="t" data-i="Kelas">Class</span><span class="t" data-i="Ruang">Room</span></div>
+        <div class="a-row done"><div class="tc">08:00<small>09:40</small></div><div class="c"><b>Sistem Digital</b><span>TKE-201 · <span class="t" data-i="Kuliah">Lecture</span></span></div><div class="r">301</div></div>
+        <div class="a-row now"><div class="tc">10:00<small>11:40</small></div><div class="c"><b>Struktur Data</b><span>TKE-205 · <span class="t" data-i="Sedang berlangsung">In progress</span></span></div><div class="r">305<small><s>204</s></small></div>
+          <div class="st"><span class="a-flag"><svg aria-hidden="true"><use href="#ar"/></svg><span class="t" data-i="Pindah ruang">Room moved</span></span><span class="t" data-i="Proyektor rusak di 204." style="color:var(--a-on-band-muted)">Projector broken in 204.</span></div></div>
+        <div class="a-row off"><div class="tc">13:30<small>16:00</small></div><div class="c"><b>Praktikum Sistem Digital</b><span>TKE-201P · <span class="t" data-i="Praktikum">Lab</span></span></div><div class="r" style="font-size:16px;line-height:1.15"><span>Lab Elektronika</span></div>
+          <div class="st"><span class="a-flag red"><svg aria-hidden="true"><use href="#x"/></svg><span class="t" data-i="Batal">Cancelled</span></span><span class="t" data-i="Asisten lab ujian.">Lab assistants have exams.</span></div></div>
+        <div class="a-row"><div class="tc">16:00<small>17:00</small></div><div class="c"><b>Bimbingan Akademik</b><span>ADV · <span class="nx t" data-i="Berikutnya">Next</span></span></div><div class="r" style="font-size:18px">Dosen 2</div></div>
+        <div class="a-sec"><h4 class="t" data-i="Tenggat">Deadlines</h4><a href="#papan"><span class="t" data-i="Lihat semua">See all</span></a></div>
+        <div class="a-due"><div class="cd red"><span class="t" data-i="Lewat">Late</span><small class="t" data-i="10 j">10 h</small></div><div><b>Kuis 2: perbaikan jawaban</b><span>TKE-201</span></div><div class="w"><span class="t" data-i="Sel">Tue</span> 23:59</div></div>
+        <div class="a-due"><div class="cd">13 <small class="t" data-i="jam lagi">hours</small></div><div><b>Tugas 3: Linked List</b><span>TKE-205</span></div><div class="w"><span class="t" data-i="Hari ini">Today</span> 23:59</div></div>
+        <nav class="a-nav"><span class="on"><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Hari ini">Today</span></span><span><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Assignments</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info kelas">Updates</span></span></nav>
+      </div></div>
+    </figure>
+    <!-- A Post -->
+    <figure class="ph"><figcaption>Post update (class rep) <small>Three status keys; the preview shows the exact board row students will see</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="a-band" style="padding-bottom:16px">
+          <div class="row1"><button class="acc" aria-label="Close" style="border-radius:10px"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#clo"/></svg></button><span class="t" data-i="38 mahasiswa akan diberi tahu" style="color:var(--a-on-band-muted);font-size:14px">38 students will be notified</span></div>
+          <h3 class="t" data-i="Laporkan perubahan">Report a change</h3>
+        </div>
+        <div class="a-form">
+          <div><span class="a-label t" data-i="Kelas">Class</span><div class="a-chips"><span class="a-chip on">TKE-205 · A</span><span class="a-chip">TKE-201P · A</span></div></div>
+          <div><span class="a-label t" data-i="Sesi">Session</span><div class="a-chips"><span class="a-chip on"><span class="t" data-i="Hari ini">Today</span>&nbsp;10:00</span><span class="a-chip"><span class="t" data-i="Jum 27">Fri 27</span>&nbsp;10:00</span><span class="a-chip t" data-i="Lainnya">Other</span></div></div>
+          <div><span class="a-label t" data-i="Apa yang berubah?">What changed?</span><div class="a-keys"><span class="a-key"><svg class="i" aria-hidden="true"><use href="#x"/></svg><span class="t" data-i="Batal">Cancelled</span></span><span class="a-key on"><svg class="i" aria-hidden="true"><use href="#ar"/></svg><span class="t" data-i="Ruang">Room</span></span><span class="a-key"><svg class="i" aria-hidden="true"><use href="#clk"/></svg><span class="t" data-i="Jam">Time</span></span></div></div>
+          <div><label class="a-label t" data-i="Ruang baru" for="a-room">New room</label><input id="a-room" class="a-input" value="305"></div>
+          <div><label class="a-label t" data-i="Catatan (opsional)" for="a-note">Note (optional)</label><input id="a-note" class="a-input sm" value="Projector broken in 204."></div>
+          <div class="a-preview"><div class="cap t" data-i="Yang dilihat mahasiswa">What students will see</div>
+            <div class="a-row" style="border:0"><div class="tc">10:00<small>11:40</small></div><div class="c"><b>Struktur Data</b><span>TKE-205</span></div><div class="r">305<small><s>204</s></small></div><div class="st"><span class="a-flag"><svg aria-hidden="true"><use href="#ar"/></svg><span class="t" data-i="Pindah ruang">Room moved</span></span></div></div></div>
+          <button class="a-btn t" data-i="Kirim ke 38 mahasiswa">Post to 38 students</button>
+        </div>
+      </div></div>
+    </figure>
+    <!-- A Assignments -->
+    <figure class="ph"><figcaption>Assignments <small>A departures list for deadlines: countdown where the time goes</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="a-band" style="padding-bottom:0">
+          <div class="row1"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Add assignment"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#plus"/></svg></button></div>
+          <h3 class="t" data-i="Tugas">Assignments</h3>
+          <div class="a-tabs"><span class="on t" data-i="Belum">To do</span><span class="t" data-i="Selesai">Done</span></div>
+        </div>
+        <div class="a-day"><span class="t" data-i="Lewat tenggat">Overdue</span></div>
+        <div class="a-due"><div class="cd red"><span class="t" data-i="Lewat">Late</span><small class="t" data-i="10 j">10 h</small></div><div><b>Kuis 2: perbaikan jawaban</b><span>TKE-201 · Sistem Digital</span></div><div class="w"><span class="t" data-i="Sel">Tue</span><br>23:59</div></div>
+        <div class="a-day"><span class="t" data-i="Hari ini · Rab 25 Nov">Today · Wed 25 Nov</span></div>
+        <div class="a-due"><div class="cd">13 <small class="t" data-i="jam lagi">hours</small></div><div><b>Tugas 3: Implementasi Linked List</b><span>TKE-205 · Struktur Data</span></div><div class="w">23:59</div></div>
+        <div class="a-day"><span class="t" data-i="Minggu ini">This week</span></div>
+        <div class="a-due"><div class="cd">2 <small class="t" data-i="hari">days</small></div><div><b>Laporan Praktikum Modul 4</b><span>TKE-201P · Praktikum</span></div><div class="w"><span class="t" data-i="Jum">Fri</span><br>16:00</div></div>
+        <div class="a-day"><span class="t" data-i="Nanti">Later</span></div>
+        <div class="a-due"><div class="cd" style="color:var(--a-muted)">13 <small class="t" data-i="hari">days</small></div><div><b>Proyek akhir: proposal kelompok</b><span>TKE-205 · Struktur Data</span></div><div class="w"><span class="t" data-i="Sen 8 Des">Mon 8 Dec</span><br>23:59</div></div>
+        <nav class="a-nav"><span><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Hari ini">Today</span></span><span class="on"><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Assignments</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info kelas">Updates</span></span></nav>
+      </div></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================= B ======================= -->
+<section class="dir dir-b" id="benang" aria-labelledby="b-h">
+  <div class="dir-head">
+    <div>
+      <h2 id="b-h">B · Benang Emas</h2>
+      <p class="idea">The day is one gold thread through your classes, taken from Aceh songket cloth. Where something changed, the thread carries a red knot.</p>
+    </div>
+    <dl class="specs">
+      <dt>Inspired by</dt><dd>Structured's day spine, Google Calendar's now line, and the colours of Aceh songket: deep red and aubergine cloth with gold thread.</dd>
+      <dt>Palette</dt><dd><div class="sw"><span><i style="background:#9E1B32"></i>Songket red #9E1B32</span><span><i style="background:#A0760A"></i>Thread gold #A0760A</span><span><i style="background:#241019"></i>Aubergine ink #241019</span><span><i style="background:#F6F3F5"></i>Ground #F6F3F5</span><span><i style="background:#1F6B4F"></i>Done green #1F6B4F</span></div></dd>
+      <dt>Fonts</dt><dd>Lexend throughout: wide letters designed for reading proficiency, which helps students reading in a second language.</dd>
+      <dt>Cards</dt><dd>Almost none. Classes hang off the thread as text; only the class in progress sits on a raised white panel. Rounded, soft, warm.</dd>
+      <dt>Signature move</dt><dd>The thread is filled gold up to now and pale after it, so the day's progress is visible at a glance. Changes are red knots on it.</dd>
+      <dt>Kept from the roll</dt><dd>From dance notation: length is duration, so longer classes take more thread. From the vertical feed: one thing (now) owns the focus.</dd>
+      <dt>Risk</dt><dd>Most distinctive and most local, but the thread must stay a timeline and not become decoration; dark mode needs care to stay warm without looking like a night mode for a casino.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <!-- B Today -->
+    <figure class="ph"><figcaption>Today <small>Gold thread filled to "now", red knots on changed classes</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="b-top"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Account">S</button></div>
+        <p class="b-greet t" data-i="Selamat pagi, Siti">Good morning, Siti</p>
+        <h3 class="b-h t" data-i="Rabu, 25 November">Wednesday, 25 November</h3>
+        <p class="b-sum"><span class="t" data-i="4 kelas hari ini,">4 classes today,</span> <b class="t" data-i="2 berubah">2 changed</b></p>
+        <div class="b-thread" style="--done:34%">
+          <div class="b-seg past"><span class="tm">08:00<small>09:40</small></span><span class="bead"></span><h5>Sistem Digital</h5><p>TKE-201 · <span class="t" data-i="Kuliah">Lecture</span></p><div class="room">Ruang 301</div></div>
+          <div class="b-seg now"><span class="tm">10:00<small>11:40</small></span><span class="bead knot"></span>
+            <div class="b-nowline"><span class="t" data-i="Sekarang 10:25">Now 10:25</span><i></i><span class="t" data-i="75 mnt lagi">75 min left</span></div>
+            <h5>Struktur Data</h5><p>TKE-205 · Nurul Fadhilah, M.Sc.</p>
+            <div class="room"><b>Ruang 305</b> <span class="t" data-i="(bukan 204)" style="color:var(--a-muted)">(not 204)</span></div>
+            <span class="b-note"><svg aria-hidden="true"><use href="#ar"/></svg><span class="t" data-i="Pindah ruang · Siti, ketua kelas">Room moved · Siti, class rep</span></span></div>
+          <div class="b-seg off" style="padding-bottom:40px"><span class="tm">13:30<small>16:00</small></span><span class="bead knot"></span><h5>Praktikum Sistem Digital</h5><p>TKE-201P · Lab Elektronika</p><span class="b-note"><svg aria-hidden="true"><use href="#x"/></svg><span class="t" data-i="Batal · asisten lab ujian">Cancelled · lab assistants have exams</span></span></div>
+          <div class="b-seg"><span class="tm">16:00<small>17:00</small></span><span class="bead open"></span><h5>Bimbingan Akademik</h5><p>ADV · Dr. Zulfikar Amin</p><div class="room">Ruang Dosen 2</div></div>
+        </div>
+        <div class="b-sec"><span class="t" data-i="Segera dikumpulkan">Due soon</span><a href="#benang"><span class="t" data-i="Semua tugas">All assignments</span></a></div>
+        <div class="b-due"><span class="tag red"><span class="t" data-i="Lewat">Late</span><small class="t" data-i="10 jam">10 hours</small></span><div><b>Kuis 2: perbaikan jawaban</b><span>TKE-201 · <span class="t" data-i="Sel 23:59">Tue 23:59</span></span></div></div>
+        <div class="b-due" style="margin-bottom:12px"><span class="tag">13<small class="t" data-i="jam lagi">hours</small></span><div><b>Tugas 3: Linked List</b><span>TKE-205 · <span class="t" data-i="Hari ini 23:59">Today 23:59</span></span></div></div>
+        <nav class="b-nav"><span class="on"><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Hari ini">Today</span></span><span><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Tasks</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info">Updates</span></span></nav>
+      </div></div>
+    </figure>
+    <!-- B Post -->
+    <figure class="ph"><figcaption>Post update (class rep) <small>Big tiles, then a live preview of the knot on the thread</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="b-top"><button class="acc" aria-label="Close" style="border-color:var(--a-line-strong)"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#clo"/></svg></button><span class="t" data-i="TKE-205 · Kelas A" style="color:var(--a-muted);font-size:15px">TKE-205 · Sec A</span></div>
+        <h3 class="b-h t" data-i="Apa yang berubah?" style="margin-top:14px">What changed?</h3>
+        <div class="b-tiles" style="margin-top:14px"><span class="b-tile"><svg aria-hidden="true"><use href="#x"/></svg><span class="t" data-i="Batal">Cancelled</span></span><span class="b-tile on"><svg aria-hidden="true"><use href="#door"/></svg><span class="t" data-i="Ruang lain">New room</span></span><span class="b-tile"><svg aria-hidden="true"><use href="#clk"/></svg><span class="t" data-i="Jam lain">New time</span></span></div>
+        <p class="b-lab" style="margin-top:20px"><span class="t" data-i="Sesi">Session</span></p>
+        <div class="b-chips"><span class="b-chip on"><span class="t" data-i="Hari ini">Today</span>&nbsp;10:00</span><span class="b-chip"><span class="t" data-i="Jum 27 Nov">Fri 27 Nov</span>&nbsp;10:00</span><span class="b-chip t" data-i="Tanggal lain">Other date</span></div>
+        <label class="b-lab t" data-i="Ruang baru" for="b-room" style="display:block;margin-top:20px">New room</label><input id="b-room" class="b-input" value="Ruang 305">
+        <label class="b-lab t" data-i="Catatan (opsional)" for="b-note" style="display:block;margin-top:16px">Note (optional)</label><input id="b-note" class="b-input" style="font-weight:400;font-size:16px" value="Projector broken in 204.">
+        <div class="b-prev" style="margin-top:18px"><div class="cap t" data-i="Di jadwal teman sekelas">On your classmates' Today</div>
+          <div class="b-thread" style="margin-top:0;--done:0%"><div class="b-seg" style="padding-bottom:8px"><span class="tm">10:00<small>11:40</small></span><span class="bead knot"></span><h5>Struktur Data</h5><div class="room"><b>Ruang 305</b> <span class="t" data-i="(bukan 204)" style="color:var(--a-muted)">(not 204)</span></div></div></div></div>
+        <div style="margin:auto 0 16px;padding-top:16px"><button class="b-btn t" data-i="Kirim ke 38 mahasiswa">Send to 38 students</button></div>
+      </div></div>
+    </figure>
+    <!-- B Assignments -->
+    <figure class="ph"><figcaption>Assignments <small>Deadlines hang off the same thread, by due date</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="b-top"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Add assignment"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#plus"/></svg></button></div>
+        <h3 class="b-h t" data-i="Tugas" style="margin-top:10px">Assignments</h3>
+        <div class="b-seg2"><span class="on t" data-i="Belum">To do</span><span class="t" data-i="Selesai">Done</span></div>
+        <div class="b-thread" style="--done:14%;margin-top:26px">
+          <div class="b-seg"><span class="tm"><span class="t" data-i="Sel">Tue</span><small>24 Nov</small></span><span class="bead knot"></span><h5>Kuis 2: perbaikan jawaban</h5><p>TKE-201 · 23:59</p><span class="b-note"><span class="t" data-i="Lewat 10 jam">10 hours late</span></span></div>
+          <div class="b-seg now" style="margin-top:4px"><span class="tm"><span class="t" data-i="Hari ini">Today</span><small>25 Nov</small></span><span class="bead"></span><h5>Tugas 3: Implementasi Linked List</h5><p>TKE-205 · 23:59</p><span class="b-note" style="background:var(--b-gold-soft);color:var(--b-gold-text)"><span class="t" data-i="13 jam lagi">13 hours left</span></span></div>
+          <div class="b-seg" style="padding-bottom:30px"><span class="tm"><span class="t" data-i="Jum">Fri</span><small>27 Nov</small></span><span class="bead open"></span><h5>Laporan Praktikum Modul 4</h5><p>TKE-201P · 16:00 · <span class="t" data-i="2 hari">2 days</span></p></div>
+          <div class="b-seg"><span class="tm"><span class="t" data-i="Sen">Mon</span><small>8 Des</small></span><span class="bead open"></span><h5>Proyek akhir: proposal kelompok</h5><p>TKE-205 · 23:59 · <span class="t" data-i="13 hari">13 days</span></p></div>
+        </div>
+        <nav class="b-nav"><span><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Hari ini">Today</span></span><span class="on"><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Tasks</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info">Updates</span></span></nav>
+      </div></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================= C ======================= -->
+<section class="dir dir-c" id="beranda" aria-labelledby="c-h">
+  <div class="dir-head">
+    <div>
+      <h2 id="c-h">C · Beranda</h2>
+      <p class="idea">Feels like the apps students already open every day: a bold colour header that greets you and puts the next room front and centre, with round shortcuts and friendly rounded cards below.</p>
+    </div>
+    <dl class="specs">
+      <dt>Inspired by</dt><dd>Access by KAI (greeting band, overlapping card, round service icons), Gojek (one committed colour, heavy rounded numbers), Todoist (entry by tapping parts of the answer).</dd>
+      <dt>Palette</dt><dd><div class="sw"><span><i style="background:#00696B"></i>Sea teal #00696B</span><span><i style="background:#FFB400"></i>Sun #FFB400</span><span><i style="background:#B42318"></i>Red #B42318</span><span><i style="background:#F1F5F5"></i>Ground #F1F5F5</span><span><i style="background:#0F2222"></i>Ink #0F2222</span></div></dd>
+      <dt>Fonts</dt><dd>Rubik: slightly rounded corners, heavy weights for the room number and countdowns, friendly at small sizes.</dd>
+      <dt>Cards</dt><dd>Big soft cards (18–22px radius) on a tinted ground, one hero card overlapping the header. A sun-yellow "sticker" marks a change.</dd>
+      <dt>Signature move</dt><dd>The hero card: the room you need right now in 42px type, with a tilted sticker when it changed. The rep form is a bottom sheet of three round "services".</dd>
+      <dt>Kept from the roll</dt><dd>From the vertical feed: the current class owns the top of the screen. From monochrome product pages: one colour owns the shell, the rest stays quiet.</dd>
+      <dt>Risk</dt><dd>Most familiar, so least memorable; a teal super-app look can drift toward generic. Easiest to build and the fastest for new users to trust.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <!-- C Today -->
+    <figure class="ph"><figcaption>Today <small>Greeting band, the room you need now as the hero, shortcuts, rounded list</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="c-head">
+          <div class="r1"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Account">S</button></div>
+          <p class="hi t" data-i="Selamat pagi, Siti">Good morning, Siti</p>
+          <h3 class="t" data-i="Rabu, 25 November">Wednesday, 25 November</h3>
+        </div>
+        <div class="c-hero">
+          <div class="k"><span class="t" data-i="Sedang berlangsung">In progress now</span><b class="t" data-i="sampai 11:40">until 11:40</b></div>
+          <div class="room">Ruang 305</div>
+          <div class="cls">Struktur Data <span>· TKE-205</span></div>
+          <div class="c-stick"><span class="t" data-i="Pindah!">Moved!</span><small class="t" data-i="dari 204">from 204</small></div>
+        </div>
+        <div class="c-icons">
+          <span><i><svg aria-hidden="true"><use href="#cal"/></svg></i><span class="t" data-i="Jadwal">Schedule</span></span>
+          <span><i><svg aria-hidden="true"><use href="#lst"/></svg></i><span class="t" data-i="Tugas">Tasks</span></span>
+          <span><i><svg aria-hidden="true"><use href="#meg"/></svg></i><span class="t" data-i="Info kelas">Updates</span></span>
+          <span><i class="sun"><svg aria-hidden="true"><use href="#plus"/></svg></i><span class="t" data-i="Lapor">Report</span></span>
+        </div>
+        <div class="c-sec"><h4 class="t" data-i="Hari ini">Today</h4></div>
+        <div class="c-list">
+          <div class="c-item past"><div class="tm">08:00<small>09:40</small></div><div class="tx"><b>Sistem Digital</b><span>Ruang 301</span></div></div>
+          <div class="c-item off"><div class="tm">13:30<small>16:00</small></div><div class="tx"><b>Praktikum Sistem Digital</b><span class="t" data-i="Asisten lab ujian">Lab assistants have exams</span></div><span class="c-pill red"><svg aria-hidden="true"><use href="#x"/></svg><span class="t" data-i="Batal">Cancelled</span></span></div>
+          <div class="c-item"><div class="tm">16:00<small>17:00</small></div><div class="tx"><b>Bimbingan Akademik</b><span>Ruang Dosen 2</span></div><span class="c-pill teal t" data-i="Berikutnya">Next</span></div>
+        </div>
+        <div class="c-sec"><h4 class="t" data-i="Segera dikumpulkan">Due soon</h4><a href="#beranda"><span class="t" data-i="Lihat semua">See all</span></a></div>
+        <div class="c-list" style="margin-bottom:14px">
+          <div class="c-acard"><span class="c-cnt"><span>13</span><small class="t" data-i="jam">hours</small></span><div><b>Tugas 3: Linked List</b><span>TKE-205 · <span class="t" data-i="Hari ini 23:59">Today 23:59</span></span></div></div>
+        </div>
+        <nav class="c-nav"><span class="on"><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Beranda">Home</span></span><span><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Tasks</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info kelas">Updates</span></span></nav>
+      </div></div>
+    </figure>
+    <!-- C Post -->
+    <figure class="ph"><figcaption>Post update (class rep) <small>A bottom sheet of three round "services", like ordering a ride</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="c-head" style="padding-bottom:120px">
+          <div class="r1"><span style="font-weight:600" class="t" data-i="Struktur Data · TKE-205">Struktur Data · TKE-205</span><button class="acc" aria-label="Close" style="background:rgba(255,255,255,.18);color:var(--c-on-head)"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#clo"/></svg></button></div>
+        </div>
+        <div class="c-sheet">
+          <div class="c-grab"></div>
+          <h3 style="margin:0;font-size:22px;font-weight:700" class="t" data-i="Lapor perubahan kelas">Report a class change</h3>
+          <div class="c-svc"><span class="x"><i><svg aria-hidden="true"><use href="#x"/></svg></i><span class="t" data-i="Batal">Cancelled</span></span><span class="m on"><i><svg aria-hidden="true"><use href="#door"/></svg></i><span class="t" data-i="Pindah ruang">New room</span></span><span class="t"><i><svg aria-hidden="true"><use href="#clk"/></svg></i><span class="t" data-i="Ganti jam">New time</span></span></div>
+          <div><p class="c-lab t" data-i="Sesi">Session</p><div class="c-chips"><span class="c-chip on"><span class="t" data-i="Hari ini">Today</span>&nbsp;10:00</span><span class="c-chip"><span class="t" data-i="Jum 27">Fri 27</span>&nbsp;10:00</span><span class="c-chip t" data-i="Lainnya">Other</span></div></div>
+          <div><label class="c-lab t" data-i="Ruang baru" for="c-room" style="display:block">New room</label><input id="c-room" class="c-input" value="Ruang 305"></div>
+          <div><label class="c-lab t" data-i="Catatan (opsional)" for="c-note" style="display:block">Note (optional)</label><input id="c-note" class="c-input sm" value="Projector broken in 204."></div>
+          <button class="c-btn t" data-i="Kirim ke 38 mahasiswa" style="margin-top:auto">Send to 38 students</button>
+        </div>
+      </div></div>
+    </figure>
+    <!-- C Assignments -->
+    <figure class="ph"><figcaption>Assignments <small>Colour band with pill tabs; a countdown tile on every card</small></figcaption>
+      <div class="frame"><div class="screen">
+        <div class="c-head" style="padding-bottom:18px">
+          <div class="r1"><button class="lang"><span class="t" data-i="English">Bahasa Indonesia</span></button><button class="acc" aria-label="Add assignment"><svg class="i" aria-hidden="true" style="width:20px;height:20px"><use href="#plus"/></svg></button></div>
+          <h3 class="t" data-i="Tugas" style="margin-top:10px">Tasks</h3>
+          <div class="c-ptabs"><span class="on t" data-i="Belum">To do</span><span class="t" data-i="Selesai">Done</span></div>
+        </div>
+        <div class="c-glabel t" data-i="Lewat tenggat">Overdue</div>
+        <div class="c-list"><div class="c-acard"><span class="c-cnt red"><span class="t" data-i="Lewat">Late</span><small class="t" data-i="10 jam">10 h</small></span><div><b>Kuis 2: perbaikan jawaban</b><span>TKE-201 · <span class="t" data-i="Sel 23:59">Tue 23:59</span></span></div></div></div>
+        <div class="c-glabel t" data-i="Hari ini">Today</div>
+        <div class="c-list"><div class="c-acard"><span class="c-cnt"><span>13</span><small class="t" data-i="jam">hours</small></span><div><b>Tugas 3: Implementasi Linked List</b><span>TKE-205 · 23:59</span></div></div></div>
+        <div class="c-glabel t" data-i="Minggu ini">This week</div>
+        <div class="c-list"><div class="c-acard"><span class="c-cnt teal"><span>2</span><small class="t" data-i="hari">days</small></span><div><b>Laporan Praktikum Modul 4</b><span>TKE-201P · <span class="t" data-i="Jum 16:00">Fri 16:00</span></span></div></div></div>
+        <div class="c-glabel t" data-i="Nanti">Later</div>
+        <div class="c-list" style="margin-bottom:14px"><div class="c-acard"><span class="c-cnt grey"><span>13</span><small class="t" data-i="hari">days</small></span><div><b>Proyek akhir: proposal kelompok</b><span>TKE-205 · <span class="t" data-i="Sen 8 Des">Mon 8 Dec</span></span></div></div></div>
+        <nav class="c-nav"><span><svg class="i" aria-hidden="true"><use href="#cal"/></svg><span class="t" data-i="Beranda">Home</span></span><span class="on"><svg class="i" aria-hidden="true"><use href="#lst"/></svg><span class="t" data-i="Tugas">Tasks</span></span><span><svg class="i" aria-hidden="true"><use href="#meg"/></svg><span class="t" data-i="Info kelas">Updates</span></span></nav>
+      </div></div>
+    </figure>
+  </div>
+</section>
+
+<script>
+(() => {
+  const els = [...document.querySelectorAll(".t[data-i]")];
+  els.forEach((el) => { el.dataset.e = el.textContent; });
+  function setLang(l) {
+    els.forEach((el) => { el.textContent = l === "id" ? el.dataset.i : el.dataset.e; });
+    document.querySelectorAll(".frame").forEach((f) => { f.lang = l; });
+    document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === l)));
+    try { localStorage.setItem("dir-lang", l); } catch {}
+  }
+  function setTheme(t) {
+    if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === t)));
+    try { localStorage.setItem("dir-theme", t); } catch {}
+  }
+  document.querySelectorAll("[data-lang-btn]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.langBtn)));
+  document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+  // Mockups are pictures: keep their controls out of the tab order.
+  document.querySelectorAll(".frame button, .frame input").forEach((el) => { el.tabIndex = -1; if (el.tagName === "INPUT") el.readOnly = true; });
+  let l = "en", t = "system";
+  try { l = localStorage.getItem("dir-lang") || "en"; t = localStorage.getItem("dir-theme") || "system"; } catch {}
+  setLang(l === "id" ? "id" : "en");
+  setTheme(["light", "dark"].includes(t) ? t : "system");
+})();
+</script>

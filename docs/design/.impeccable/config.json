@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "directions/index.html"
+        ],
+        "createdAt": "2026-11-25T13:07:43.725Z",
+        "reason": "Designer: phone mockups; chips, keys and tiles centre text in 44-104px min-height boxes and screens sit flush in the phone bezel by design"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "board-beranda/index.html"
+        ],
+        "createdAt": "2026-11-25T13:50:11.427Z",
+        "reason": "Designer: phone mockups; chips, pills, countdown tiles and service buttons centre text in 44-104px min-height boxes, screens sit flush in the bezel; checked on the rendered published page"
+      }
+    ]
+  }
+}

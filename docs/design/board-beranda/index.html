@@ -1,0 +1,617 @@
+<title>CampusOS Board Beranda</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap">
+<style>
+/* Layout: review board. Sticky toolbar, then labelled 390px phone plates in a wrapping grid, grouped by build day.
+   App tokens are docs/design/system.md §1 (Beranda) 1:1; board-* tokens are only for the board chrome. */
+:root {
+  --background:#F1F5F5; --foreground:#0F2222; --surface:#FFFFFF; --muted:#4D6161; --line:#DCE6E6; --line-strong:#6A7E7E;
+  --head:#00696B; --on-head:#FFFFFF; --on-head-muted:#CDE9E8; --primary:#00696B; --on-primary:#FFFFFF; --primary-soft:#E0F2F1;
+  --sun:#FFB400; --on-sun:#0F2222; --warn:#7A4A00; --warn-soft:#FFF4D6; --danger:#B42318; --danger-soft:#FDECEA;
+  --shadow: 0 10px 24px -14px rgb(0 40 40 / .45);
+  --board-bg:#E4EBEB; --board-fg:#0F2222; --board-muted:#4D6161; --board-card:#F7FAFA; --frame:#173232; --scrim: rgb(4 20 20 / .45);
+  --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --background:#081414; --foreground:#E7F2F2; --surface:#112222; --muted:#9DB5B5; --line:#1F3434; --line-strong:#5F7676;
+  --head:#0D3B3C; --on-head:#E7F2F2; --on-head-muted:#A9CFCD; --primary:#4FD1C5; --on-primary:#062020; --primary-soft:#123534;
+  --sun:#FFC23D; --on-sun:#0F2222; --warn:#FFC23D; --warn-soft:#3A2A06; --danger:#FF8E85; --danger-soft:#3D1512;
+  --shadow: 0 10px 24px -14px rgb(0 0 0 / .7);
+  --board-bg:#050D0D; --board-fg:#E7F2F2; --board-muted:#9DB5B5; --board-card:#0D1B1B; --frame:#2C4848; --scrim: rgb(0 0 0 / .6); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --background:#081414; --foreground:#E7F2F2; --surface:#112222; --muted:#9DB5B5; --line:#1F3434; --line-strong:#5F7676;
+  --head:#0D3B3C; --on-head:#E7F2F2; --on-head-muted:#A9CFCD; --primary:#4FD1C5; --on-primary:#062020; --primary-soft:#123534;
+  --sun:#FFC23D; --on-sun:#0F2222; --warn:#FFC23D; --warn-soft:#3A2A06; --danger:#FF8E85; --danger-soft:#3D1512;
+  --shadow: 0 10px 24px -14px rgb(0 0 0 / .7);
+  --board-bg:#050D0D; --board-fg:#E7F2F2; --board-muted:#9DB5B5; --board-card:#0D1B1B; --frame:#2C4848; --scrim: rgb(0 0 0 / .6); color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--board-bg); color: var(--board-fg); font: 16px/1.45 var(--font); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 72px; }
+::selection { background: color-mix(in srgb, var(--primary) 28%, transparent); }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+
+/* chrome */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--board-bg); border-bottom: 1px solid var(--line); padding-block: 14px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 41; background: var(--board-bg); }
+.top h1 { margin: 0; font-size: 22px; font-weight: 700; }
+.top p { margin: 0; color: var(--board-muted); font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--board-card); border: 1px solid var(--line); }
+.seg button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; color: var(--board-muted); cursor: pointer; font-size: 15px; }
+.seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.intro { max-width: 72ch; color: var(--board-muted); margin: 20px 0 0; }
+.intro b { color: var(--board-fg); font-weight: 600; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+.toc a { min-height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--board-card); border: 1px solid var(--line); color: var(--board-fg); text-decoration: none; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(390px, 100%), 1fr)); gap: 48px 36px; margin-top: 24px; justify-items: center; }
+.day { grid-column: 1 / -1; justify-self: stretch; margin: 28px 0 -18px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 17px; font-weight: 700; }
+.day span { color: var(--board-muted); font-weight: 400; font-size: 15px; }
+.plate { margin: 0; width: min(390px, 100%); display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 120px; }
+.plate figcaption { min-height: 96px; }
+.tid { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 700; }
+.plate h2 { margin: 6px 0 2px; font-size: 19px; font-weight: 600; }
+.plate p.note { margin: 0; font-size: 14px; color: var(--board-muted); }
+.phone { width: 100%; border: 8px solid var(--frame); border-radius: 46px; overflow: hidden; position: relative; background: var(--background); color: var(--foreground); }
+.scr { min-height: 780px; display: flex; flex-direction: column; position: relative; font-size: 16px; }
+.scr.short { min-height: 0; }
+
+/* app components (system.md §5) */
+svg.i { width: 24px; height: 24px; flex-shrink: 0; }
+.band { background: var(--head); color: var(--on-head); padding: 24px 16px 18px; }
+.band.hero-gap { padding-bottom: 64px; }
+.band .r1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pilllang { min-height: 44px; border: 0; border-radius: 999px; background: rgb(255 255 255 / .15); color: var(--on-head); padding: 0 14px; font-size: 14px; font-weight: 500; }
+.avatar { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--sun); color: var(--on-sun); font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+.avatar svg { width: 22px; height: 22px; }
+.disc-btn { width: 44px; height: 44px; border-radius: 999px; border: 0; background: rgb(255 255 255 / .16); color: var(--on-head); display: grid; place-items: center; }
+.disc-btn svg { width: 22px; height: 22px; }
+.greet { margin: 14px 0 0; color: var(--on-head-muted); font-size: 15px; }
+.band h3 { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; text-wrap: balance; }
+.band .sub { margin: 4px 0 0; color: var(--on-head-muted); font-size: 14px; }
+.hero { position: relative; margin: -48px 16px 0; background: var(--surface); border-radius: 22px; padding: 16px; box-shadow: var(--shadow); }
+.hero .k { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); }
+.hero .k b { color: var(--primary); font-weight: 600; }
+.hero .room { margin-top: 6px; font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.hero .cls { margin-top: 6px; font-weight: 500; }
+.hero .cls span { color: var(--muted); font-weight: 400; }
+.sticker { position: absolute; right: 14px; top: 44px; transform: rotate(4deg); background: var(--sun); color: var(--on-sun); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 14px; line-height: 1.15; text-align: center; box-shadow: 0 4px 10px -4px rgb(0 0 0 / .35); }
+.sticker small { display: block; font-size: 12px; font-weight: 500; }
+.shorts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 16px 12px 2px; }
+.shorts > span { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 76px; text-align: center; font-size: 13px; font-weight: 500; line-height: 1.2; position: relative; }
+.shorts i { width: 50px; height: 50px; border-radius: 999px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); position: relative; }
+.shorts i.sun { background: var(--warn-soft); color: var(--warn); }
+.shorts i svg { width: 24px; height: 24px; }
+.count { position: absolute; top: -3px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: var(--surface); font-size: 12px; font-weight: 700; display: grid; place-items: center; font-style: normal; }
+.sec { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+.sec h4 { margin: 0; font-size: 18px; font-weight: 700; }
+.sec a, .tlink { min-height: 44px; display: inline-flex; align-items: center; color: var(--primary); font-weight: 600; text-decoration: none; font-size: 15px; background: none; border: 0; padding: 0; }
+.list { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.row { display: flex; gap: 12px; align-items: center; min-height: 64px; background: var(--surface); border-radius: 18px; padding: 12px 14px; }
+.row .tm { width: 50px; flex-shrink: 0; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; align-self: flex-start; padding-top: 1px; }
+.row .tm small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+.row .tx { flex: 1; min-width: 0; }
+.row .tx b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .tx .m { font-size: 14px; color: var(--muted); }
+.row .tx .absent { font-size: 14px; font-weight: 500; color: var(--danger); }
+.row .tx .nt { font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.row.past { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.row.past .tm, .row.past b { color: var(--muted); }
+.row.off b { text-decoration: line-through; }
+.pill { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.pill svg { width: 14px; height: 14px; }
+.p-teal { background: var(--primary-soft); color: var(--primary); }
+.p-sun { background: var(--warn-soft); color: var(--warn); }
+.p-red { background: var(--danger-soft); color: var(--danger); }
+.acard { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: 18px; padding: 12px; color: inherit; text-decoration: none; }
+.acard b { display: block; font-weight: 600; line-height: 1.3; }
+.acard .m { font-size: 14px; color: var(--muted); }
+.cnt { width: 58px; height: 58px; flex-shrink: 0; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; background: var(--warn-soft); color: var(--warn); }
+.cnt small { font-size: 12px; font-weight: 500; margin-top: 3px; }
+.cnt.red { background: var(--danger-soft); color: var(--danger); font-size: 16px; }
+.cnt.teal { background: var(--primary-soft); color: var(--primary); }
+.cnt.grey { background: var(--background); color: var(--muted); }
+.glabel { padding: 16px 16px 8px; font-weight: 700; font-size: 17px; }
+.nav { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); padding: 6px 0 12px; box-shadow: 0 -1px 0 var(--line); }
+.nav > span { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; color: var(--muted); position: relative; }
+.nav > span .ic { width: 52px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+.nav > span.on { color: var(--primary); font-weight: 600; }
+.nav > span.on .ic { background: var(--primary-soft); }
+.nav .dot { position: absolute; top: 6px; left: calc(50% + 12px); width: 8px; height: 8px; border-radius: 999px; background: var(--danger); }
+.ptabs { display: inline-flex; background: rgb(255 255 255 / .16); border-radius: 999px; padding: 4px; margin-top: 14px; }
+.ptabs > span { min-height: 40px; padding: 0 18px; border-radius: 999px; display: inline-flex; align-items: center; color: var(--on-head); font-weight: 500; }
+.ptabs > span.on { background: var(--on-head); color: var(--head); font-weight: 700; }
+.btn { min-height: 56px; width: 100%; border: 0; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; }
+.btn2 { min-height: 48px; width: 100%; border: 0; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-danger { min-height: 48px; width: 100%; border: 0; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font-weight: 700; font-size: 16px; }
+.btn.auto { width: auto; min-height: 44px; font-size: 15px; }
+.lab { display: block; margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+.input { min-height: 52px; width: 100%; border-radius: 16px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--foreground); padding: 12px 16px; font: 400 16px var(--font); }
+.input.big { font-size: 20px; font-weight: 600; }
+textarea.input { resize: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--background); display: inline-flex; align-items: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.chip.on { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.on-surface .chip { background: var(--background); }
+.content { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.box { background: var(--surface); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.sticky { margin-top: auto; padding: 12px 16px 22px; background: var(--background); display: flex; flex-direction: column; gap: 10px; }
+.radio { min-height: 64px; border-radius: 18px; background: var(--surface); display: flex; align-items: center; gap: 14px; padding: 0 16px; font-size: 17px; }
+.radio.on { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary); font-weight: 600; }
+.rdot { width: 22px; height: 22px; border-radius: 999px; border: 2px solid var(--line-strong); flex-shrink: 0; background: var(--surface); }
+.radio.on .rdot { border: 7px solid var(--primary); }
+.cgroup { background: var(--surface); border-radius: 18px; overflow: hidden; }
+.cgroup > div { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid var(--line); }
+.cgroup > div:first-child { border-top: 0; }
+.cbox { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line-strong); flex-shrink: 0; display: grid; place-items: center; }
+.cbox.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.cbox svg { width: 14px; height: 14px; }
+.ghead { margin: 18px 16px 8px; font-weight: 600; }
+.ghead span { color: var(--muted); font-weight: 400; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 26px 26px 0 0; padding: 10px 16px 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 -10px 28px -12px rgb(0 0 0 / .45); }
+.grab { width: 40px; height: 5px; border-radius: 999px; background: var(--line-strong); opacity: .6; margin: 0 auto; }
+.sheet h4 { margin: 0; font-size: 22px; font-weight: 700; flex: 1; }
+.svc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.svc > span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 104px; border-radius: 18px; font-weight: 600; font-size: 15px; text-align: center; }
+.svc i { width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center; }
+.svc i svg { width: 26px; height: 26px; }
+.svc .x i { background: var(--danger-soft); color: var(--danger); }
+.svc .m i { background: var(--primary-soft); color: var(--primary); }
+.svc .t i { background: var(--warn-soft); color: var(--warn); }
+.svc > span.on { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary); }
+.close { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--background); color: var(--foreground); display: grid; place-items: center; }
+.close svg { width: 20px; height: 20px; }
+.upd { display: flex; gap: 12px; background: var(--surface); border-radius: 18px; padding: 14px; }
+.kd { width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center; flex-shrink: 0; }
+.kd svg { width: 22px; height: 22px; }
+.kd.x { background: var(--danger-soft); color: var(--danger); }
+.kd.m { background: var(--primary-soft); color: var(--primary); }
+.kd.t { background: var(--warn-soft); color: var(--warn); }
+.upd .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.upd .l1 { display: flex; align-items: center; gap: 8px; }
+.upd .l1 b { font-weight: 600; }
+.upd .l1 .ago { margin-left: auto; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.upd .s { font-size: 14px; }
+.upd .who { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.upd .who svg { width: 14px; height: 14px; color: var(--primary); }
+.fab { position: absolute; right: 16px; bottom: 94px; min-height: 56px; border-radius: 999px; border: 0; background: var(--sun); color: var(--on-sun); font-weight: 700; font-size: 16px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow); }
+.fab svg { width: 20px; height: 20px; }
+.banner { display: flex; align-items: flex-start; gap: 12px; margin: 12px 16px 0; background: var(--surface); border-radius: 18px; padding: 14px; font-size: 14px; box-shadow: var(--shadow); }
+.banner .bi { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; flex-shrink: 0; background: var(--primary-soft); color: var(--primary); }
+.banner .bi.w { background: var(--warn-soft); color: var(--warn); }
+.banner .bi svg { width: 20px; height: 20px; }
+.banner .x { width: 44px; height: 44px; margin: -10px -8px -10px auto; flex-shrink: 0; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
+.banner .x svg { width: 18px; height: 18px; }
+.acrow { min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-top: 1px solid var(--line); }
+.acrow:first-child { border-top: 0; }
+.acrow .ai { width: 36px; height: 36px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; flex-shrink: 0; }
+.acrow .ai svg { width: 20px; height: 20px; }
+.acrow .grow { flex: 1; font-weight: 500; }
+.acgroup { background: var(--background); border-radius: 18px; overflow: hidden; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+.steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.glyph { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--background); color: var(--primary); vertical-align: middle; margin-left: 4px; }
+.glyph svg { width: 18px; height: 18px; }
+.linkrow { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--surface); border-radius: 18px; color: var(--primary); font-weight: 500; word-break: break-all; }
+.linkrow i { width: 36px; height: 36px; border-radius: 999px; background: var(--primary-soft); display: grid; place-items: center; flex-shrink: 0; }
+.linkrow svg { width: 18px; height: 18px; }
+.duecard { position: relative; margin: -36px 16px 0; background: var(--surface); border-radius: 22px; padding: 14px; display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow); }
+.duecard .v { font-weight: 700; font-size: 18px; }
+.duecard .k { font-size: 14px; color: var(--muted); }
+.white-card { margin: 0 16px; background: var(--surface); border-radius: 18px; padding: 14px 16px; }
+.white-card p { margin: 0; }
+.login-band { background: var(--head); color: var(--on-head); padding: 24px 20px 56px; min-height: 470px; display: flex; flex-direction: column; }
+.logo { display: flex; align-items: center; gap: 12px; margin-top: auto; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+.logo i { width: 44px; height: 44px; border-radius: 999px; background: var(--sun); color: var(--on-sun); display: grid; place-items: center; }
+.logo i svg { width: 24px; height: 24px; }
+.tag { margin: 10px 0 0; font-size: 18px; color: var(--on-head-muted); max-width: 22ch; }
+.demo { display: flex; gap: 10px; margin-top: 26px; align-items: flex-start; }
+.demo .mini { background: var(--surface); color: var(--foreground); border-radius: 16px; padding: 10px 12px; position: relative; font-weight: 800; font-size: 20px; box-shadow: var(--shadow); }
+.demo .mini .sticker { position: absolute; top: -14px; right: -16px; font-size: 12px; padding: 4px 8px; }
+.login-sheet { margin-top: -24px; background: var(--surface); border-radius: 26px 26px 0 0; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: flex-start; }
+.gdot { width: 26px; height: 26px; border-radius: 999px; background: var(--on-primary); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+.bell { width: 64px; height: 64px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; }
+.bell svg { width: 30px; height: 30px; }
+.optlabel { margin: 16px 16px 6px; font-size: 13px; font-weight: 600; color: var(--board-muted); }
+.lock { min-height: 780px; background: radial-gradient(120% 80% at 50% 0%, #0E6B6C 0%, #0A2F30 55%, #041414 100%); color: #F1F7F7; padding: 60px 14px 20px; display: flex; flex-direction: column; gap: 10px; font-family: var(--font); }
+.lock .clock { text-align: center; font-size: 76px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.lock .date { text-align: center; font-size: 17px; color: #CDE9E8; margin-bottom: 30px; }
+.notif { background: rgb(241 247 247 / .95); color: #0F2222; border-radius: 20px; padding: 12px 14px; display: flex; gap: 12px; }
+.notif .appi { width: 38px; height: 38px; border-radius: 10px; background: #00696B; color: #FFB400; flex-shrink: 0; display: grid; place-items: center; }
+.notif .appi svg { width: 20px; height: 20px; }
+.notif .meta { display: flex; justify-content: space-between; font-size: 12px; color: #4D6161; }
+.notif .t { font-weight: 600; font-size: 15px; }
+.notif .b { font-size: 15px; }
+.copytable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.copytable th, .copytable td { text-align: left; vertical-align: top; padding: 8px 8px 8px 0; border-top: 1px solid var(--line); }
+.copytable th { width: 34%; color: var(--board-muted); font-weight: 600; }
+.tablebox { background: var(--board-card); border: 1px solid var(--line); border-radius: 18px; padding: 10px 16px; overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { .sticker { transform: none; } }
+@media (max-width: 420px) { .phone { border-width: 6px; border-radius: 38px; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-cal2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM13 14l2 2-2 2M9 16h6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="i-mega" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17M3 21h18M12 12h.01M16 7h3v14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></symbol>
+  <symbol id="i-verified" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.3 1.7 2.9-.1.9 2.7 2.3 1.8-.9 2.7.9 2.7-2.3 1.8-.9 2.7-2.9-.1L12 21l-2.3-1.7-2.9.1-.9-2.7-2.3-1.8.9-2.7-.9-2.7 2.3-1.8.9-2.7 2.9.1Z"/><path d="m8.8 12.2 2.2 2.2 4.2-4.6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16ZM10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v9h14v-9h-1"/></symbol>
+  <symbol id="i-addsq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/></symbol>
+  <symbol id="i-lang" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+</defs></svg>
+
+<header class="top">
+  <div><h1>CampusOS board · Beranda</h1><p>All 14 screens in the chosen direction · for Siam's approval · 25 Nov 2026</p></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-btn="system" aria-pressed="true">System</button><button type="button" data-theme-btn="light" aria-pressed="false">Light</button><button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button></div>
+    <div class="seg" role="group" aria-label="Language of the mockups"><button type="button" data-lang-btn="en" aria-pressed="true">English</button><button type="button" data-lang-btn="id" aria-pressed="false">Indonesia</button></div>
+  </div>
+</header>
+<p class="intro">Each phone is one screen at 390px in the Beranda direction, using the tokens and components in <b>docs/design/system.md</b>. Reply to the Lead with <b>"approve CO-xx"</b> or a comment naming the screen. Sample: Siti (class rep of TKE-205) on <b>Wednesday 25 November, 10:25 WIB</b>. Struktur Data moved from Ruang 204 to 305; the afternoon lab is cancelled. Course names stay in Indonesian in both languages, as in the timetable.</p>
+<ul class="toc">
+  <li><a href="#login">Login</a></li><li><a href="#onb-lang">Onboarding</a></li><li><a href="#today">Today</a></li><li><a href="#assignments">Assignments</a></li><li><a href="#detail">Detail</a></li><li><a href="#editor">Editor</a></li><li><a href="#updates">Updates</a></li><li><a href="#post">Report change</a></li><li><a href="#reminders">Reminders</a></li><li><a href="#account">Account</a></li><li><a href="#install">iPhone hint</a></li><li><a href="#push">Push</a></li>
+</ul>
+
+<main class="grid">
+<h2 class="day">Day 2 <span>· sign-in, onboarding, Today (built in blue; changes listed in the Lead report)</span></h2>
+
+<!-- 1 LOGIN -->
+<figure class="plate" id="login">
+  <figcaption><span class="tid">CO-08 · CO-09</span><h2>Login</h2><p class="note">Teal band says what the app does with two real mini components; Google button sits low on a white sheet, in thumb reach.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="login-band">
+      <div style="display:flex;justify-content:flex-end"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button></div>
+      <div class="logo"><i aria-hidden="true"><svg><use href="#i-pin"/></svg></i>CampusOS</div>
+      <p class="tag" data-t="login.tagline">Your classes, assignments and class changes in one place.</p>
+      <div class="demo" aria-hidden="true">
+        <div class="mini">Ruang 305<span class="sticker"><span data-t="sticker.moved">Moved!</span></span></div>
+        <div class="mini" style="display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600"><span class="cnt" style="width:40px;height:40px;font-size:16px;border-radius:12px">13</span><span data-t="unit.hoursLeft">hours left</span></div>
+      </div>
+    </div>
+    <div class="login-sheet">
+      <button class="btn"><span class="gdot" aria-hidden="true">G</span><span data-t="login.google">Continue with Google</span></button>
+      <p style="margin:0;text-align:center;font-size:14px;color:var(--muted)" data-t="login.hint">Use your student Google account.</p>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 2 ONB LANG -->
+<figure class="plate" id="onb-lang">
+  <figcaption><span class="tid">CO-08 · CO-10</span><h2>Onboarding 1 · Language</h2><p class="note">Title in both languages on this step only; default follows the phone's language.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><p class="sub" style="margin:8px 0 0" data-t="onb.step" data-n="1">Step 1 of 3</p><h3>Choose your language<span style="display:block;color:var(--on-head-muted);font-weight:500" lang="id">Pilih bahasa</span></h3></div>
+    <div class="content">
+      <div class="radio on"><span class="rdot"></span>English</div>
+      <div class="radio"><span class="rdot"></span><span lang="id">Bahasa Indonesia</span></div>
+    </div>
+    <div class="sticky"><button class="btn" data-t="onb.continue">Continue</button></div>
+  </div></div>
+</figure>
+
+<!-- 3 ONB CLASSES -->
+<figure class="plate" id="onb-classes">
+  <figcaption><span class="tid">CO-08 · CO-10</span><h2>Onboarding 2 · Pick classes</h2><p class="note">Grouped by course in white cards; search by code or name. When reopened from Account the button says "Save".</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><div class="r1" style="justify-content:flex-start;gap:4px"><button class="disc-btn" aria-label="Back"><svg><use href="#i-back"/></svg></button><span class="sub" style="margin:0" data-t="onb.step" data-n="2">Step 2 of 3</span></div><h3 data-t="onb.classesTitle" style="margin-top:8px">Pick your classes</h3><p class="sub" data-t="onb.classesBody">Choose every class and section you attend this semester.</p></div>
+    <div style="padding:14px 16px 0;position:relative"><svg style="position:absolute;left:30px;top:28px;width:20px;height:20px;color:var(--muted)" aria-hidden="true"><use href="#i-search"/></svg><input class="input" style="padding-left:44px" data-tp="onb.search" placeholder="Search code or name" aria-label="Search"></div>
+    <p class="ghead">TKE-201 <span>Sistem Digital</span></p>
+    <div class="cgroup" style="margin:0 16px">
+      <div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.mon">Mon</span> 08:00</span></div>
+      <div><span class="cbox"></span><span><span data-t="x.secB">Sec B</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.tue">Tue</span> 10:00</span></div>
+    </div>
+    <p class="ghead">TKE-201P <span>Praktikum Sistem Digital</span></p>
+    <div class="cgroup" style="margin:0 16px"><div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lab">Lab</span> · <span data-t="x.wed">Wed</span> 13:30</span></div></div>
+    <p class="ghead">TKE-205 <span>Struktur Data</span></p>
+    <div class="cgroup" style="margin:0 16px"><div><span class="cbox on"><svg><use href="#i-check"/></svg></span><span><span data-t="x.secA">Sec A</span> · <span data-t="type.lecture">Lecture</span> · <span data-t="x.wed">Wed</span> 10:00</span></div></div>
+    <div class="sticky" style="margin-top:20px"><button class="btn" data-t="onb.continueCount" data-n="3">Continue (3 selected)</button></div>
+  </div></div>
+</figure>
+
+<!-- 4 ONB REMIND -->
+<figure class="plate" id="onb-remind">
+  <figcaption><span class="tid">CO-08 · CO-26</span><h2>Onboarding 3 · Reminders</h2><p class="note">Our explanation first; the browser dialog opens only after "Turn on". On iPhone Safari this step shows the Home Screen steps instead; it is never skipped there.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><div class="r1" style="justify-content:flex-start;gap:4px"><button class="disc-btn" aria-label="Back"><svg><use href="#i-back"/></svg></button><span class="sub" style="margin:0" data-t="onb.step" data-n="3">Step 3 of 3</span></div></div>
+    <div class="content" style="gap:12px;padding-top:28px">
+      <div class="bell"><svg aria-hidden="true"><use href="#i-bell"/></svg></div>
+      <h3 style="margin:6px 0 0;font-size:26px;font-weight:700" data-t="onb.remindTitle">Get reminders</h3>
+      <p style="margin:0;color:var(--muted);font-size:17px" data-t="onb.remindBody">We'll remind you 30 minutes before class, before deadlines, and when a class is cancelled or moved.</p>
+    </div>
+    <div class="sticky"><button class="btn" data-t="onb.remindOn">Turn on reminders</button><button class="btn2" data-t="onb.notNow">Not now</button></div>
+  </div></div>
+</figure>
+
+<!-- 5 TODAY -->
+<figure class="plate" id="today">
+  <figcaption><span class="tid">CO-08 · CO-11 · CO-24</span><h2>Today</h2><p class="note">The room you need now is the hero, with a sticker when it moved. Below: shortcuts (Report change for reps), the rest of the day with one "Next", the cancelled lab with "Lecturer absent" and the rep's note.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band hero-gap"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><button class="avatar" aria-label="Account">S</button></div><p class="greet" data-t="x.greet">Good morning, Siti</p><h3 data-t="x.todayDate">Wednesday, 25 November</h3></div>
+    <div class="hero"><div class="k"><span data-t="hero.inProgress">In progress now</span><b data-t="x.until">until 11:40</b></div><div class="room">Ruang 305</div><div class="cls">Struktur Data <span>· TKE-205</span></div><div class="sticker"><span data-t="sticker.moved">Moved!</span><small data-t="x.from204">from 204</small></div></div>
+    <div class="shorts">
+      <span><i class="sun"><svg aria-hidden="true"><use href="#i-plus"/></svg></i><span data-t="short.report">Report change</span></span>
+      <span><i><svg aria-hidden="true"><use href="#i-cal2"/></svg></i><span data-t="short.tomorrow">Tomorrow</span></span>
+      <span><i><svg aria-hidden="true"><use href="#i-list"/></svg><b class="count">2</b></i><span data-t="nav.assignments">Assignments</span></span>
+      <span><i><svg aria-hidden="true"><use href="#i-mega"/></svg><b class="count">2</b></i><span data-t="nav.updates">Updates</span></span>
+    </div>
+    <div class="sec"><h4 data-t="today.rest">Rest of today</h4></div>
+    <div class="list">
+      <div class="row past"><div class="tm">08:00<small>09:40</small></div><div class="tx"><b>Sistem Digital</b><span class="m">Ruang 301 · <span data-t="type.lecture">Lecture</span></span></div></div>
+      <div class="row off"><div class="tm">13:30<small>16:00</small></div><div class="tx"><b>Praktikum Sistem Digital</b><span class="absent" data-t="today.lecturerAbsent">Lecturer absent</span><span class="nt">Asisten lab ujian, praktikum diganti minggu depan.</span></div><span class="pill p-red"><svg aria-hidden="true"><use href="#i-x"/></svg><span data-t="badge.absent">Cancelled</span></span></div>
+      <div class="row"><div class="tm">16:00<small>17:00</small></div><div class="tx"><b>Bimbingan Akademik</b><span class="m">Ruang Dosen 2 · <span data-t="type.advising">Advising</span></span></div><span class="pill p-teal" data-t="today.next">Next</span></div>
+    </div>
+    <div class="sec"><h4 data-t="today.dueSoon">Due soon</h4><a href="#assignments" data-t="today.seeAll">See all</a></div>
+    <div class="list" style="margin-bottom:16px">
+      <a class="acard" href="#detail"><span class="cnt red"><span data-t="due.late">Late</span><small data-t="x.10h">10 h</small></span><div><b>Kuis 2: perbaikan jawaban</b><span class="m">TKE-201 · <span data-t="x.tue">Tue</span> 23:59</span></div></a>
+      <a class="acard" href="#detail"><span class="cnt">13<small data-t="unit.hours">hours</small></span><div><b>Tugas 3: Implementasi Linked List</b><span class="m">TKE-205 · <span data-t="date.today">Today</span> 23:59</span></div></a>
+    </div>
+    <nav class="nav"><span class="on"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-t="nav.today">Today</span></span><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><span data-t="nav.assignments">Assignments</span></span><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-mega"/></svg></span><span data-t="nav.updates">Updates</span><i class="dot" aria-hidden="true"></i></span></nav>
+  </div></div>
+</figure>
+
+<h2 class="day">Day 3 <span>· assignments</span></h2>
+
+<!-- 6 ASSIGNMENTS -->
+<figure class="plate" id="assignments">
+  <figcaption><span class="tid">CO-15 · CO-16</span><h2>Assignments list</h2><p class="note">Pill tabs in the band; a countdown tile on every card, coloured by urgency. The sun "+" (add) shows for reps only.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><button class="avatar" aria-label="Add assignment"><svg><use href="#i-plus"/></svg></button></div><h3 data-t="nav.assignments" style="margin-top:10px">Assignments</h3><div class="ptabs" role="tablist"><span class="on" data-t="assignments.todo">To do</span><span data-t="assignments.done">Done</span></div></div>
+    <div class="glabel" data-t="assignments.overdue">Overdue</div>
+    <div class="list"><a class="acard" href="#detail"><span class="cnt red"><span data-t="due.late">Late</span><small data-t="x.10h">10 h</small></span><div><b>Kuis 2: perbaikan jawaban</b><span class="m">TKE-201 · <span data-t="x.tue">Tue</span> 23:59</span></div></a></div>
+    <div class="glabel" data-t="assignments.today">Today</div>
+    <div class="list"><a class="acard" href="#detail"><span class="cnt">13<small data-t="unit.hours">hours</small></span><div><b>Tugas 3: Implementasi Linked List</b><span class="m">TKE-205 · 23:59</span></div></a></div>
+    <div class="glabel" data-t="assignments.thisWeek">This week</div>
+    <div class="list"><a class="acard" href="#detail"><span class="cnt teal">2<small data-t="unit.days">days</small></span><div><b>Laporan Praktikum Modul 4: Flip-flop</b><span class="m">TKE-201P · <span data-t="x.fri">Fri</span> 16:00</span></div></a></div>
+    <div class="glabel" data-t="assignments.later">Later</div>
+    <div class="list" style="margin-bottom:16px"><a class="acard" href="#detail"><span class="cnt grey">13<small data-t="unit.days">days</small></span><div><b>Proyek akhir: proposal kelompok</b><span class="m">TKE-205 · <span data-t="x.mon8">Mon 8 Dec</span> 23:59</span></div></a></div>
+    <nav class="nav"><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-t="nav.today">Today</span></span><span class="on"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><span data-t="nav.assignments">Assignments</span></span><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-mega"/></svg></span><span data-t="nav.updates">Updates</span><i class="dot" aria-hidden="true"></i></span></nav>
+  </div></div>
+</figure>
+
+<!-- 7 DETAIL -->
+<figure class="plate" id="detail">
+  <figcaption><span class="tid">CO-15 · CO-16</span><h2>Assignment detail</h2><p class="note">Same blocks in the same order for every assignment. The due card overlaps the band like the room card on Today. "Edit" for the class's editors only.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band" style="padding-bottom:52px"><div class="r1"><button class="disc-btn" aria-label="Back"><svg><use href="#i-back"/></svg></button><button class="pilllang" style="display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16" aria-hidden="true"><use href="#i-edit"/></svg><span data-t="assignments.edit">Edit</span></button></div><p class="greet">TKE-205 · Struktur Data</p><h3>Tugas 3: Implementasi Linked List</h3></div>
+    <div class="duecard"><span class="cnt">13<small data-t="unit.hours">hours</small></span><div><div class="k" data-t="assignments.due">Due</div><div class="v" data-t="x.dueLong">Wed 25 Nov, 23:59 WIB</div></div></div>
+    <div class="sec"><h4 data-t="assignments.instructions">Instructions</h4></div>
+    <div class="white-card"><p>Implement a singly linked list in C with insert, delete and search. Add a short report (max 2 pages) with the time complexity of each operation. Submit one ZIP named NIM_Nama_Tugas3.</p></div>
+    <div class="sec"><h4 data-t="assignments.links">Links</h4></div>
+    <div class="list"><div class="linkrow"><i><svg aria-hidden="true"><use href="#i-link"/></svg></i>elearning.usk.ac.id/mod/assign/…</div><div class="linkrow"><i><svg aria-hidden="true"><use href="#i-link"/></svg></i>drive.google.com/file/d/…/view</div></div>
+    <p style="margin:16px 16px 12px;font-size:14px;color:var(--muted)"><span data-t="assignments.postedByShort">Posted by</span> Siti Rahma (<span data-t="role.classrep">class rep</span>)</p>
+    <div style="padding:0 16px 20px"><button class="btn2"><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span data-t="assignments.markDone">Mark as done</span></button></div>
+    <nav class="nav"><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-t="nav.today">Today</span></span><span class="on"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><span data-t="nav.assignments">Assignments</span></span><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-mega"/></svg></span><span data-t="nav.updates">Updates</span></span></nav>
+  </div></div>
+</figure>
+
+<!-- 8 EDITOR -->
+<figure class="plate" id="editor">
+  <figcaption><span class="tid">CO-15 · CO-17</span><h2>Assignment editor</h2><p class="note">One format for every class. Quick due chips, then a WIB read-back so students abroad see the real time. About 15 seconds for a rep.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><div class="r1" style="justify-content:flex-start;gap:10px"><button class="disc-btn" aria-label="Close"><svg><use href="#i-x"/></svg></button><h3 style="margin:0;font-size:20px" data-t="editor.newTitle">New assignment</h3></div></div>
+    <div class="content">
+      <div><span class="lab" data-t="editor.class">Class</span><div class="chips"><span class="chip on">TKE-205 · A</span><span class="chip" style="background:var(--surface)">TKE-201P · A</span></div></div>
+      <div class="box">
+        <div><label class="lab" for="ed-title" data-t="editor.title">Title</label><input id="ed-title" class="input" value="Tugas 4: Stack dan Queue"></div>
+        <div><span class="lab" data-t="editor.due">Due (WIB)</span><div class="chips"><span class="chip on" data-t="editor.nextClass">Next class</span><span class="chip" data-t="editor.inWeek">In 1 week</span><span class="chip" data-t="editor.pickDate">Pick date</span></div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:8px;margin-top:10px"><input class="input" aria-label="Date" value="27/11/2026"><input class="input" aria-label="Time" value="10:00"></div>
+          <p style="margin:8px 0 0;font-size:14px;color:var(--primary);font-weight:500" data-t="x.readback">Friday 27 November, 10:00 WIB</p></div>
+        <div><label class="lab" for="ed-ins" data-t="editor.instructions">Instructions (optional)</label><textarea id="ed-ins" class="input" rows="3">Implement stack and queue using the linked list from Tugas 3. Print every step.</textarea></div>
+        <div><span class="lab" data-t="editor.links">Links (optional)</span><div style="display:flex;gap:6px"><input class="input" aria-label="Link 1" value="https://elearning.usk.ac.id/mod/assign/view.php?id=4182"><button class="close" aria-label="Remove link"><svg><use href="#i-x"/></svg></button></div>
+          <button class="tlink" style="margin-top:4px"><svg width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>&nbsp;<span data-t="editor.addLink">Add link</span></button></div>
+      </div>
+    </div>
+    <div class="sticky"><button class="btn" data-t="editor.post">Post assignment</button></div>
+  </div></div>
+</figure>
+
+<h2 class="day">Day 4 <span>· class updates</span></h2>
+
+<!-- 9 UPDATES -->
+<figure class="plate" id="updates">
+  <figcaption><span class="tid">CO-21 · CO-22</span><h2>Updates feed</h2><p class="note">Newest first. A coloured disc says the kind before you read; unread items carry a "New" pill; every post names its verified sender. Sun "Report change" button for reps.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><button class="avatar" aria-label="Account">S</button></div><h3 data-t="nav.updates" style="margin-top:10px">Updates</h3><p class="sub" data-t="updates.trust">Only verified class reps, lab assistants and lecturers can post.</p></div>
+    <div class="list" style="padding-top:14px">
+      <article class="upd"><span class="kd x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="bd"><div class="l1"><b data-t="badge.absent">Cancelled</b><span class="pill p-teal" data-t="nav.newUpdates">New</span><span class="ago" data-t="x.ago1">1h ago</span></div><div class="s">Praktikum Sistem Digital · TKE-201P</div><div class="s"><span data-t="date.today">Today</span> 13:30 · <span data-t="today.lecturerAbsent">Lecturer absent</span></div><div class="s" style="color:var(--muted)">Asisten lab ujian, praktikum diganti minggu depan.</div><span class="who">Fajar Maulana · <span data-t="role.labassistant">lab assistant</span><svg aria-label="verified" role="img"><use href="#i-verified"/></svg></span></div></article>
+      <article class="upd"><span class="kd m"><svg aria-hidden="true"><use href="#i-door"/></svg></span><div class="bd"><div class="l1"><b data-t="badge.room_change">Room moved</b><span class="pill p-teal" data-t="nav.newUpdates">New</span><span class="ago" data-t="x.ago2">2h ago</span></div><div class="s">Struktur Data · TKE-205</div><div class="s"><span data-t="date.today">Today</span> 10:00 → <b>Ruang 305</b></div><div class="s" style="color:var(--muted)">Projector broken in 204.</div><span class="who">Siti Rahma · <span data-t="role.classrep">class rep</span><svg aria-label="verified" role="img"><use href="#i-verified"/></svg></span></div></article>
+      <article class="upd"><span class="kd t"><svg aria-hidden="true"><use href="#i-clock"/></svg></span><div class="bd"><div class="l1"><b data-t="badge.reschedule">New time</b><span class="ago" data-t="x.ago3">yesterday</span></div><div class="s">Sistem Digital · TKE-201</div><div class="s"><span data-t="x.fri28">Fri 28 Nov</span> 08:00 → <b>10:00</b></div><div class="s" style="color:var(--muted)">Rapat jurusan pagi, kuliah mundur 2 jam.</div><span class="who">Dr. Ir. Rahmat Hidayat · <span data-t="role.lecturer">lecturer</span><svg aria-label="verified" role="img"><use href="#i-verified"/></svg></span></div></article>
+    </div>
+    <div style="height:90px"></div>
+    <button class="fab"><svg aria-hidden="true"><use href="#i-plus"/></svg><span data-t="short.report">Report change</span></button>
+    <nav class="nav"><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-t="nav.today">Today</span></span><span><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><span data-t="nav.assignments">Assignments</span></span><span class="on"><span class="ic"><svg class="i" aria-hidden="true"><use href="#i-mega"/></svg></span><span data-t="nav.updates">Updates</span></span></nav>
+  </div></div>
+</figure>
+
+<!-- 10 POST -->
+<figure class="plate" id="post">
+  <figcaption><span class="tid">CO-21 · CO-23</span><h2>Report a change (class reps)</h2><p class="note">A bottom sheet of three round "services", like booking a ride. Class and session are pre-filled from Today; tap "New room", type 305, send. Under 30 seconds.</p></figcaption>
+  <div class="phone"><div class="scr">
+    <div class="band" style="padding-bottom:110px"><div class="r1"><span style="font-weight:600">Struktur Data · TKE-205</span><button class="disc-btn" aria-label="Close"><svg><use href="#i-x"/></svg></button></div></div>
+    <div class="sheet" style="top:84px">
+      <div class="grab"></div>
+      <h4 data-t="updates.sheetTitle">Report a class change</h4>
+      <div class="svc"><span class="x"><i><svg aria-hidden="true"><use href="#i-x"/></svg></i><span data-t="updates.svcAbsent">Cancelled</span></span><span class="m on"><i><svg aria-hidden="true"><use href="#i-door"/></svg></i><span data-t="updates.svcRoom">New room</span></span><span class="t"><i><svg aria-hidden="true"><use href="#i-clock"/></svg></i><span data-t="updates.svcTime">New time</span></span></div>
+      <div><span class="lab" data-t="updates.session">Which session?</span><div class="chips"><span class="chip on"><span data-t="date.today">Today</span>&nbsp;10:00</span><span class="chip"><span data-t="x.fri27">Fri 27</span>&nbsp;10:00</span><span class="chip" data-t="updates.otherDate">Other date</span></div></div>
+      <div><label class="lab" for="po-room" data-t="updates.newRoom">New room</label><input id="po-room" class="input big" value="Ruang 305"></div>
+      <div><label class="lab" for="po-note" data-t="updates.note">Note (optional)</label><input id="po-note" class="input" value="Projector broken in 204."></div>
+      <button class="btn" data-t="updates.submitCount" data-n="38">Send to 38 students</button>
+    </div>
+  </div></div>
+</figure>
+
+<h2 class="day">Day 4–5 <span>· reminders, account, install, push</span></h2>
+
+<!-- 11 REMINDERS -->
+<figure class="plate" id="reminders">
+  <figcaption><span class="tid">CO-26</span><h2>Reminders prompt on Today</h2><p class="note">For students who chose "Not now": one banner under the shortcuts, from the next day, at most every 7 days. If notifications get blocked in the browser, a one-time warning links to Account.</p></figcaption>
+  <div class="phone"><div class="scr short">
+    <div class="band hero-gap"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><button class="avatar" aria-label="Account">S</button></div><p class="greet" data-t="x.greet">Good morning, Siti</p><h3 data-t="x.todayDate">Wednesday, 25 November</h3></div>
+    <div class="hero"><div class="k"><span data-t="hero.inProgress">In progress now</span><b data-t="x.until">until 11:40</b></div><div class="room">Ruang 305</div><div class="cls">Struktur Data <span>· TKE-205</span></div></div>
+    <p class="optlabel" data-t="x.notAsked">Not asked yet</p>
+    <div class="banner" style="margin-top:0"><span class="bi"><svg aria-hidden="true"><use href="#i-bell"/></svg></span><div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span data-t="notif.banner">Get a reminder 30 min before class and when it's moved.</span><button class="btn auto" data-t="notif.turnOn">Turn on reminders</button></div><button class="x" aria-label="Dismiss"><svg><use href="#i-x"/></svg></button></div>
+    <p class="optlabel" data-t="x.blockedOnce">Blocked in the browser (shown once)</p>
+    <div class="banner" style="margin:0 16px 22px"><span class="bi w"><svg aria-hidden="true"><use href="#i-info"/></svg></span><div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start"><span data-t="notif.deniedBanner">Reminders are off, so you won't hear about cancelled or moved classes.</span><button class="tlink" data-t="notif.howLink">How to turn on</button></div><button class="x" aria-label="Dismiss"><svg><use href="#i-x"/></svg></button></div>
+  </div></div>
+</figure>
+
+<!-- 12 ACCOUNT -->
+<figure class="plate" id="account">
+  <figcaption><span class="tid">CO-09 · CO-10 · CO-26</span><h2>Account sheet</h2><p class="note">Opens from the yellow avatar in the header. Holds exactly: change classes, language, reminder status, sign out.</p></figcaption>
+  <div class="phone"><div class="scr" style="min-height:720px">
+    <div class="band hero-gap"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><button class="avatar" aria-label="Account">S</button></div><p class="greet" data-t="x.greet">Good morning, Siti</p><h3 data-t="x.todayDate">Wednesday, 25 November</h3></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div style="display:flex;align-items:center"><h4 data-t="account.title">Account</h4><button class="close" aria-label="Close"><svg><use href="#i-x"/></svg></button></div>
+      <div style="display:flex;gap:12px;align-items:center"><span class="avatar" style="width:48px;height:48px;font-size:18px">S</span><div><b style="font-weight:600">Siti Rahma</b><div style="font-size:14px;color:var(--muted);word-break:break-all">siti.rahma@mhs.usk.ac.id</div></div></div>
+      <div class="acgroup">
+        <div class="acrow"><span class="ai"><svg aria-hidden="true"><use href="#i-cal"/></svg></span><span class="grow" data-t="account.classes">Change classes</span><span style="color:var(--muted);font-size:14px" data-t="account.classCount" data-n="4">4 classes</span><svg width="18" height="18" aria-hidden="true" style="color:var(--muted)"><use href="#i-chev"/></svg></div>
+        <div class="acrow" style="flex-wrap:wrap;padding-block:8px"><span class="ai"><svg aria-hidden="true"><use href="#i-lang"/></svg></span><span class="grow" data-t="account.language">Language</span><span class="chips"><span class="chip on" style="min-height:40px">English</span><span class="chip" style="min-height:40px;background:var(--surface)" lang="id">Indonesia</span></span></div>
+        <div class="acrow" style="flex-wrap:wrap;padding-block:10px"><span class="ai"><svg aria-hidden="true"><use href="#i-bell"/></svg></span><span class="grow" data-t="account.reminders">Reminders</span><span class="pill p-red" data-t="notif.blocked">Blocked in settings</span><span style="flex-basis:100%;padding-left:48px;font-size:13px;color:var(--muted)" data-t="notif.howIos">Open iPhone Settings → Notifications → CampusOS → turn on Allow Notifications.</span></div>
+      </div>
+      <button class="btn-danger" data-t="account.signOut">Sign out</button>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 13 INSTALL -->
+<figure class="plate" id="install">
+  <figcaption><span class="tid">CO-28</span><h2>iPhone "Add to Home Screen" hint</h2><p class="note">Only on iPhone Safari when not installed: push needs the app on the Home Screen (iOS 16.4+). Banner under the shortcuts, steps in a sheet.</p></figcaption>
+  <div class="phone"><div class="scr" style="min-height:720px">
+    <div class="band"><div class="r1"><button class="pilllang" data-t="lang.switch">Bahasa Indonesia</button><span class="avatar">S</span></div><p class="greet" data-t="x.greet">Good morning, Siti</p><h3 data-t="x.todayDate">Wednesday, 25 November</h3></div>
+    <div class="banner"><span class="bi"><svg aria-hidden="true"><use href="#i-info"/></svg></span><div><span data-t="install.banner">Add CampusOS to your Home Screen to get class reminders.</span> <button class="tlink" style="min-height:0;font-size:14px" data-t="install.how">How?</button></div><button class="x" aria-label="Dismiss"><svg><use href="#i-x"/></svg></button></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div style="display:flex;align-items:center"><h4 data-t="install.title">Add to Home Screen</h4><button class="close" aria-label="Close"><svg><use href="#i-x"/></svg></button></div>
+      <ol class="steps">
+        <li><span><span data-t="install.step1">Tap the Share button at the bottom of Safari.</span> <span class="glyph"><svg aria-hidden="true"><use href="#i-share"/></svg></span></span></li>
+        <li><span><span data-t="install.step2">Scroll and tap "Add to Home Screen".</span> <span class="glyph"><svg aria-hidden="true"><use href="#i-addsq"/></svg></span></span></li>
+        <li><span data-t="install.step3">Tap "Add", then open CampusOS from your Home Screen.</span></li>
+      </ol>
+      <button class="btn" data-t="install.gotIt">Got it</button>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 14 PUSH -->
+<figure class="plate" id="push">
+  <figcaption><span class="tid">CO-20 · CO-25</span><h2>Push notifications</h2><p class="note">Ordinary system notifications in the student's language, course code first so the title fits a lock screen. All six texts are in the table.</p></figcaption>
+  <div class="phone"><div class="lock">
+    <div class="clock">10:31</div><div class="date" data-t="x.lockDate">Wednesday 25 November</div>
+    <div class="notif"><span class="appi" aria-hidden="true"><svg><use href="#i-pin"/></svg></span><div style="flex:1;min-width:0"><div class="meta"><span>CampusOS</span><span data-t="x.now">now</span></div><div class="t" data-t="push.room.title" data-code="TKE-201P">TKE-201P: room moved</div><div class="b"><span data-t="date.today">Today</span> 13:30 → Lab Komputer 2. AC rusak di Lab Elektronika.</div></div></div>
+    <div class="notif"><span class="appi" aria-hidden="true"><svg><use href="#i-pin"/></svg></span><div style="flex:1;min-width:0"><div class="meta"><span>CampusOS</span><span data-t="x.ago25">25m ago</span></div><div class="t" data-t="push.classSoon.title" data-code="TKE-205">TKE-205 starts in 30 min</div><div class="b">Struktur Data · 10:00 · Ruang 305</div></div></div>
+  </div></div>
+  <div class="tablebox">
+    <table class="copytable">
+      <tr><th data-t="x.ev1">Class in 30 min</th><td><b data-t="push.classSoon.title" data-code="TKE-205">TKE-205 starts in 30 min</b><br>Struktur Data · 10:00 · Ruang 305</td></tr>
+      <tr><th data-t="x.ev2">Deadline in 24 h</th><td><b><span data-t="push.due24">Due in 24 hours:</span> Tugas 3</b><br>TKE-205 · <span data-t="x.dueWord">due</span> <span data-t="x.wed">Wed</span> 23:59 WIB</td></tr>
+      <tr><th data-t="x.ev3">Deadline in 1 h</th><td><b><span data-t="push.due1">Due in 1 hour:</span> Tugas 3</b><br>TKE-205 · <span data-t="x.dueWord">due</span> <span data-t="x.wed">Wed</span> 23:59 WIB. <span data-t="x.submitNow">Submit now.</span></td></tr>
+      <tr><th data-t="x.ev4">Room change</th><td><b data-t="push.room.title" data-code="TKE-205">TKE-205: room moved</b><br><span data-t="date.today">Today</span> 10:00 → Ruang 305. Projector broken in 204.</td></tr>
+      <tr><th data-t="x.ev5">Lecturer absent</th><td><b data-t="push.absent.title" data-code="TKE-201P">TKE-201P cancelled</b><br><span data-t="date.today">Today</span> 13:30: <span data-t="x.absentLower">lecturer absent</span>. Asisten lab ujian.</td></tr>
+      <tr><th data-t="x.ev6">Rescheduled</th><td><b data-t="push.reschedule.title" data-code="TKE-201">TKE-201: new time</b><br><span data-t="x.fri28">Fri 28 Nov</span>: 08:00 → 10:00. Rapat jurusan pagi.</td></tr>
+    </table>
+  </div>
+</figure>
+</main>
+
+<script>
+(() => {
+  const M = {
+    en: {
+      "lang.switch":"Bahasa Indonesia","login.tagline":"Your classes, assignments and class changes in one place.","login.google":"Continue with Google","login.hint":"Use your student Google account.","unit.hoursLeft":"hours left",
+      "onb.step":"Step {n} of 3","onb.continue":"Continue","onb.continueCount":"Continue ({n} selected)","onb.classesTitle":"Pick your classes","onb.classesBody":"Choose every class and section you attend this semester.","onb.search":"Search code or name",
+      "onb.remindTitle":"Get reminders","onb.remindBody":"We'll remind you 30 minutes before class, before deadlines, and when a class is cancelled or moved.","onb.remindOn":"Turn on reminders","onb.notNow":"Not now",
+      "type.lecture":"Lecture","type.lab":"Lab","type.advising":"Advising",
+      "nav.today":"Today","nav.assignments":"Assignments","nav.updates":"Updates","nav.newUpdates":"New",
+      "hero.inProgress":"In progress now","sticker.moved":"Moved!","short.report":"Report change","short.tomorrow":"Tomorrow",
+      "today.rest":"Rest of today","today.next":"Next","today.dueSoon":"Due soon","today.seeAll":"See all","today.lecturerAbsent":"Lecturer absent",
+      "badge.absent":"Cancelled","badge.room_change":"Room moved","badge.reschedule":"New time",
+      "due.late":"Late","unit.hours":"hours","unit.days":"days",
+      "assignments.todo":"To do","assignments.done":"Done","assignments.overdue":"Overdue","assignments.today":"Today","assignments.thisWeek":"This week","assignments.later":"Later",
+      "assignments.edit":"Edit","assignments.due":"Due","assignments.instructions":"Instructions","assignments.links":"Links","assignments.postedByShort":"Posted by","assignments.markDone":"Mark as done",
+      "role.classrep":"class rep","role.labassistant":"lab assistant","role.lecturer":"lecturer",
+      "editor.newTitle":"New assignment","editor.class":"Class","editor.title":"Title","editor.due":"Due (WIB)","editor.nextClass":"Next class","editor.inWeek":"In 1 week","editor.pickDate":"Pick date","editor.instructions":"Instructions (optional)","editor.links":"Links (optional)","editor.addLink":"Add link","editor.post":"Post assignment",
+      "updates.trust":"Only verified class reps, lab assistants and lecturers can post.","updates.sheetTitle":"Report a class change","updates.svcAbsent":"Cancelled","updates.svcRoom":"New room","updates.svcTime":"New time","updates.session":"Which session?","updates.otherDate":"Other date","updates.newRoom":"New room","updates.note":"Note (optional)","updates.submitCount":"Send to {n} students",
+      "date.today":"Today",
+      "notif.banner":"Get a reminder 30 min before class and when it's moved.","notif.turnOn":"Turn on reminders","notif.deniedBanner":"Reminders are off, so you won't hear about cancelled or moved classes.","notif.howLink":"How to turn on","notif.blocked":"Blocked in settings","notif.howIos":"Open iPhone Settings → Notifications → CampusOS → turn on Allow Notifications.",
+      "account.title":"Account","account.classes":"Change classes","account.classCount":"{n} classes","account.language":"Language","account.reminders":"Reminders","account.signOut":"Sign out",
+      "install.banner":"Add CampusOS to your Home Screen to get class reminders.","install.how":"How?","install.title":"Add to Home Screen","install.step1":"Tap the Share button at the bottom of Safari.","install.step2":"Scroll and tap \"Add to Home Screen\".","install.step3":"Tap \"Add\", then open CampusOS from your Home Screen.","install.gotIt":"Got it",
+      "push.classSoon.title":"{code} starts in 30 min","push.room.title":"{code}: room moved","push.absent.title":"{code} cancelled","push.reschedule.title":"{code}: new time","push.due24":"Due in 24 hours:","push.due1":"Due in 1 hour:",
+      "x.secA":"Sec A","x.secB":"Sec B","x.mon":"Mon","x.tue":"Tue","x.wed":"Wed","x.fri":"Fri","x.mon8":"Mon 8 Dec","x.greet":"Good morning, Siti","x.todayDate":"Wednesday, 25 November","x.lockDate":"Wednesday 25 November",
+      "x.until":"until 11:40","x.from204":"from 204","x.10h":"10 h","x.dueLong":"Wed 25 Nov, 23:59 WIB","x.readback":"Friday 27 November, 10:00 WIB",
+      "x.ago1":"1h ago","x.ago2":"2h ago","x.ago3":"yesterday","x.ago25":"25m ago","x.now":"now","x.fri28":"Fri 28 Nov","x.fri27":"Fri 27","x.dueWord":"due","x.submitNow":"Submit now.","x.absentLower":"lecturer absent",
+      "x.notAsked":"Not asked yet","x.blockedOnce":"Blocked in the browser (shown once)",
+      "x.ev1":"Class in 30 min","x.ev2":"Deadline in 24 h","x.ev3":"Deadline in 1 h","x.ev4":"Room change","x.ev5":"Lecturer absent","x.ev6":"Rescheduled"
+    },
+    id: {
+      "lang.switch":"English","login.tagline":"Jadwal, tugas, dan info perubahan kelas dalam satu tempat.","login.google":"Masuk dengan Google","login.hint":"Gunakan akun Google mahasiswa kamu.","unit.hoursLeft":"jam lagi",
+      "onb.step":"Langkah {n} dari 3","onb.continue":"Lanjut","onb.continueCount":"Lanjut ({n} dipilih)","onb.classesTitle":"Pilih kelas kamu","onb.classesBody":"Pilih semua kelas dan seksi yang kamu ikuti semester ini.","onb.search":"Cari kode atau nama",
+      "onb.remindTitle":"Aktifkan pengingat","onb.remindBody":"Kami akan mengingatkan 30 menit sebelum kelas, sebelum tenggat, dan saat kelas batal atau pindah.","onb.remindOn":"Aktifkan pengingat","onb.notNow":"Nanti saja",
+      "type.lecture":"Kuliah","type.lab":"Praktikum","type.advising":"Bimbingan",
+      "nav.today":"Hari ini","nav.assignments":"Tugas","nav.updates":"Info kelas","nav.newUpdates":"Baru",
+      "hero.inProgress":"Sedang berlangsung","sticker.moved":"Pindah!","short.report":"Lapor perubahan","short.tomorrow":"Besok",
+      "today.rest":"Sisa hari ini","today.next":"Berikutnya","today.dueSoon":"Segera dikumpulkan","today.seeAll":"Lihat semua","today.lecturerAbsent":"Dosen berhalangan",
+      "badge.absent":"Batal","badge.room_change":"Pindah ruang","badge.reschedule":"Jam berubah",
+      "due.late":"Lewat","unit.hours":"jam","unit.days":"hari",
+      "assignments.todo":"Belum","assignments.done":"Selesai","assignments.overdue":"Lewat tenggat","assignments.today":"Hari ini","assignments.thisWeek":"Minggu ini","assignments.later":"Nanti",
+      "assignments.edit":"Ubah","assignments.due":"Tenggat","assignments.instructions":"Instruksi","assignments.links":"Tautan","assignments.postedByShort":"Diposting oleh","assignments.markDone":"Tandai selesai",
+      "role.classrep":"ketua kelas","role.labassistant":"asisten lab","role.lecturer":"dosen",
+      "editor.newTitle":"Tugas baru","editor.class":"Kelas","editor.title":"Judul","editor.due":"Tenggat (WIB)","editor.nextClass":"Pertemuan berikutnya","editor.inWeek":"1 minggu lagi","editor.pickDate":"Pilih tanggal","editor.instructions":"Instruksi (opsional)","editor.links":"Tautan (opsional)","editor.addLink":"Tambah tautan","editor.post":"Kirim tugas",
+      "updates.trust":"Hanya ketua kelas, asisten lab, dan dosen terverifikasi yang bisa memposting.","updates.sheetTitle":"Lapor perubahan kelas","updates.svcAbsent":"Batal","updates.svcRoom":"Pindah ruang","updates.svcTime":"Ganti jam","updates.session":"Sesi yang mana?","updates.otherDate":"Tanggal lain","updates.newRoom":"Ruang baru","updates.note":"Catatan (opsional)","updates.submitCount":"Kirim ke {n} mahasiswa",
+      "date.today":"Hari ini",
+      "notif.banner":"Dapatkan pengingat 30 menit sebelum kelas dan saat kelas pindah.","notif.turnOn":"Aktifkan pengingat","notif.deniedBanner":"Pengingat mati, jadi kamu tidak akan tahu jika kelas batal atau pindah.","notif.howLink":"Cara mengaktifkan","notif.blocked":"Diblokir di pengaturan","notif.howIos":"Buka Pengaturan iPhone → Notifikasi → CampusOS → aktifkan Izinkan Notifikasi.",
+      "account.title":"Akun","account.classes":"Ubah kelas","account.classCount":"{n} kelas","account.language":"Bahasa","account.reminders":"Pengingat","account.signOut":"Keluar",
+      "install.banner":"Tambahkan CampusOS ke Layar Utama agar dapat pengingat kelas.","install.how":"Caranya?","install.title":"Tambah ke Layar Utama","install.step1":"Ketuk tombol Bagikan di bagian bawah Safari.","install.step2":"Gulir lalu ketuk \"Tambah ke Layar Utama\".","install.step3":"Ketuk \"Tambah\", lalu buka CampusOS dari Layar Utama.","install.gotIt":"Mengerti",
+      "push.classSoon.title":"{code} mulai 30 menit lagi","push.room.title":"{code}: pindah ruang","push.absent.title":"{code} batal","push.reschedule.title":"{code}: jam berubah","push.due24":"Tenggat 24 jam lagi:","push.due1":"Tenggat 1 jam lagi:",
+      "x.secA":"Kelas A","x.secB":"Kelas B","x.mon":"Sen","x.tue":"Sel","x.wed":"Rab","x.fri":"Jum","x.mon8":"Sen 8 Des","x.greet":"Selamat pagi, Siti","x.todayDate":"Rabu, 25 November","x.lockDate":"Rabu, 25 November",
+      "x.until":"sampai 11:40","x.from204":"dari 204","x.10h":"10 jam","x.dueLong":"Rab 25 Nov, 23:59 WIB","x.readback":"Jumat 27 November, 10:00 WIB",
+      "x.ago1":"1 jam lalu","x.ago2":"2 jam lalu","x.ago3":"kemarin","x.ago25":"25 mnt lalu","x.now":"sekarang","x.fri28":"Jum 28 Nov","x.fri27":"Jum 27","x.dueWord":"tenggat","x.submitNow":"Kumpulkan sekarang.","x.absentLower":"dosen berhalangan",
+      "x.notAsked":"Belum ditanya","x.blockedOnce":"Diblokir di browser (tampil sekali)",
+      "x.ev1":"Kelas 30 menit lagi","x.ev2":"Tenggat 24 jam lagi","x.ev3":"Tenggat 1 jam lagi","x.ev4":"Pindah ruang","x.ev5":"Dosen berhalangan","x.ev6":"Jadwal berubah"
+    }
+  };
+  const fill = (s, el) => s.replace("{n}", el.dataset.n ?? "").replace("{code}", el.dataset.code ?? "");
+  function setLang(lang) {
+    document.querySelectorAll("[data-t]").forEach((el) => {
+      const s = M[lang][el.dataset.t];
+      if (s == null) { console.warn("missing copy", lang, el.dataset.t); return; }
+      el.textContent = fill(s, el);
+    });
+    document.querySelectorAll("[data-tp]").forEach((el) => { el.placeholder = M[lang][el.dataset.tp]; });
+    document.querySelectorAll(".phone, .tablebox").forEach((el) => { el.lang = lang; });
+    document.querySelectorAll("[data-lang-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langBtn === lang)));
+    try { localStorage.setItem("beranda-lang", lang); } catch {}
+  }
+  function setTheme(t) {
+    if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === t)));
+    try { localStorage.setItem("beranda-theme", t); } catch {}
+  }
+  document.querySelectorAll("[data-lang-btn]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.langBtn)));
+  document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+  // Mockups are pictures: keep their controls out of the tab order.
+  document.querySelectorAll(".phone button, .phone input, .phone textarea").forEach((el) => { el.tabIndex = -1; if (el.matches("input, textarea")) el.readOnly = true; });
+  let lang = "en", theme = "system";
+  try { lang = localStorage.getItem("beranda-lang") || "en"; theme = localStorage.getItem("beranda-theme") || "system"; } catch {}
+  setLang(M[lang] ? lang : "en");
+  setTheme(["light", "dark"].includes(theme) ? theme : "system");
+})();
+</script>

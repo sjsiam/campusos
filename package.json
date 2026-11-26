@@ -6,21 +6,39 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "emulators": "firebase emulators:start --project demo-campusos",
+    "test": "vitest run",
+    "seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
+    "set-role": "tsx --env-file-if-exists=.env.local scripts/set-role.ts",
+    "db": "pglite-server --db=.pglite --port=54329 --max-connections=10",
+    "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
+    "token": "tsx --env-file-if-exists=.env.local scripts/token.ts"
   },
   "dependencies": {
+    "date-fns": "^4.4.0",
+    "firebase": "^13.4.0",
+    "firebase-admin": "^14.5.1",
     "next": "16.4.6",
+    "postgres": "^4.1.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "@electric-sql/pglite-socket": "^0.3.0",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/turbopack": "4.3.3",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "firebase-tools": "^15.37.0",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.1"
   }
 }
